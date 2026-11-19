@@ -13,27 +13,27 @@ output:
 
 # Información del grupo
 
-- **Grupo de trabajo:** 1
-- **Miembros:**
-  1.  Elena de los Santos Barrera
-  2.  David Valencia Toscano
-  3.  Beatriz Vela Moscoso
+-   **Grupo de trabajo:** 1
+-   **Miembros:**
+    1.  Elena de los Santos Barrera
+    2.  David Valencia Toscano
+    3.  Beatriz Vela Moscoso
 
 # Conjunto de datos
 
-- **Nombre:** Global Mental Health & Lifestyle Survey
-- **Enlace:** <https://www.kaggle.com/code/lalit7881/global-mental-health-lifestyle-survey-92-15/input?scriptVersionId=294778087>
-- **Fichero:** `data/mental_health.csv`
+-   **Nombre:** Global Mental Health & Lifestyle Survey
+-   **Enlace:** <https://www.kaggle.com/code/lalit7881/global-mental-health-lifestyle-survey-92-15/input?scriptVersionId=294778087>
+-   **Fichero:** `data/mental_health.csv`
 
 **Encuestados y variables.** El fichero contiene **10.000 encuestados**, uno por fila, y **51 variables**: 50 predictores y la variable objetivo. No hay valores ausentes ni registros duplicados. De las 51 columnas, 13 son categóricas y 38 numéricas, aunque buena parte de las numéricas son escalas discretas (de 1 a 10 o de 0 a 10) o indicadores binarios (0/1). Los predictores se organizan en siete bloques:
 
-- **Sociodemográficos:** edad, género, país, nivel educativo, estado civil y nivel de ingresos.
-- **Laborales:** situación laboral, horas de trabajo semanales, trabajo en remoto, satisfacción laboral, estrés laboral, conciliación, acoso en el trabajo y apoyo de la empresa a la salud mental.
-- **Estilo de vida:** ejercicio, horas de sueño, consumo de cafeína, alcohol y tabaco, tiempo de pantalla y de redes sociales, tiempo de ocio, calidad de la dieta y estrés económico.
-- **Síntomas:** doce síntomas emocionales puntuados de 0 a 10 (tristeza, pérdida de interés, problemas de sueño, fatiga, alteración del apetito, sentimiento de inutilidad, dificultad de concentración, ansiedad, cambios de humor, irritabilidad, pensamientos obsesivos y conductas compulsivas) y la frecuencia de ataques de pánico (de 0 a 4).
-- **Riesgo clínico:** ideas de autolesión, ideas suicidas, antecedentes familiares de enfermedad mental y trauma previo.
-- **Tratamiento:** diagnóstico previo, búsqueda de tratamiento, terapia actual y medicación actual.
-- **Entorno social:** apoyo social, número de amigos íntimos, sentirse comprendido, soledad y facilidad para hablar de salud mental.
+-   **Sociodemográficos:** edad, género, país, nivel educativo, estado civil y nivel de ingresos.
+-   **Laborales:** situación laboral, horas de trabajo semanales, trabajo en remoto, satisfacción laboral, estrés laboral, conciliación, acoso en el trabajo y apoyo de la empresa a la salud mental.
+-   **Estilo de vida:** ejercicio, horas de sueño, consumo de cafeína, alcohol y tabaco, tiempo de pantalla y de redes sociales, tiempo de ocio, calidad de la dieta y estrés económico.
+-   **Síntomas:** doce síntomas emocionales puntuados de 0 a 10 (tristeza, pérdida de interés, problemas de sueño, fatiga, alteración del apetito, sentimiento de inutilidad, dificultad de concentración, ansiedad, cambios de humor, irritabilidad, pensamientos obsesivos y conductas compulsivas) y la frecuencia de ataques de pánico (de 0 a 4).
+-   **Riesgo clínico:** ideas de autolesión, ideas suicidas, antecedentes familiares de enfermedad mental y trauma previo.
+-   **Tratamiento:** diagnóstico previo, búsqueda de tratamiento, terapia actual y medicación actual.
+-   **Entorno social:** apoyo social, número de amigos íntimos, sentirse comprendido, soledad y facilidad para hablar de salud mental.
 
 **Variable objetivo.** `Has_Mental_Health_Issue` es una variable binaria: vale 1 si la persona declara tener un problema de salud mental y 0 si no. Es una autodeclaración del encuestado, no un diagnóstico clínico. Su distribución e la siguiente: **9.216 personas (92,2 %)** declaran un problema y solo **784 (7,8 %)** no lo hacen. Este desbalanceo condiciona el análisis. Un modelo que respondiera siempre «sí» acertaría el 92,2 %
 
@@ -157,14 +157,14 @@ kable(bloques, row.names = FALSE,
 
 Los bloques contienen la siguiente información:
 
-- **Sociodemográficas:** edad, género, país, estudios, estado civil e ingresos. La edad es numérica, mientras que las restantes son categóricas nominales u ordinales.
-- **Laborales:** situación laboral, horas trabajadas, trabajo en remoto, satisfacción laboral, estrés, conciliación y apoyo de la empresa. Incluyen cantidades, categorías y escalas de valoración.
-- **Estilo de vida:** hábitos relacionados con el ejercicio, descanso, alimentación, consumo de sustancias, uso de pantallas y tiempo de ocio. Incluyen horas, frecuencias y categorías.
-- **Síntomas:** doce síntomas emocionales y psicológicos valorados de 0 a 10, además de los ataques de pánico, cuya escala es de 0 a 4.
-- **Historial clínico:** antecedentes familiares, experiencias traumáticas y pensamientos de autolesión o suicidio. Son indicadores binarios.
-- **Tratamiento:** diagnóstico previo, búsqueda de ayuda, terapia y medicación. Son variables binarias.
-- **Apoyo social:** número de amigos, apoyo recibido, sentimiento de comprensión y soledad, y facilidad para hablar de salud mental. Incluyen cantidades, escalas y categorías.
-- **Variable objetivo:** `Has_Mental_Health_Issue`, que toma el valor 1 si el encuestado declara tener un problema de salud mental y 0 si no lo declara.
+-   **Sociodemográficas:** edad, género, país, estudios, estado civil e ingresos. La edad es numérica, mientras que las restantes son categóricas nominales u ordinales.
+-   **Laborales:** situación laboral, horas trabajadas, trabajo en remoto, satisfacción laboral, estrés, conciliación y apoyo de la empresa. Incluyen cantidades, categorías y escalas de valoración.
+-   **Estilo de vida:** hábitos relacionados con el ejercicio, descanso, alimentación, consumo de sustancias, uso de pantallas y tiempo de ocio. Incluyen horas, frecuencias y categorías.
+-   **Síntomas:** doce síntomas emocionales y psicológicos valorados de 0 a 10, además de los ataques de pánico, cuya escala es de 0 a 4.
+-   **Historial clínico:** antecedentes familiares, experiencias traumáticas y pensamientos de autolesión o suicidio. Son indicadores binarios.
+-   **Tratamiento:** diagnóstico previo, búsqueda de ayuda, terapia y medicación. Son variables binarias.
+-   **Apoyo social:** número de amigos, apoyo recibido, sentimiento de comprensión y soledad, y facilidad para hablar de salud mental. Incluyen cantidades, escalas y categorías.
+-   **Variable objetivo:** `Has_Mental_Health_Issue`, que toma el valor 1 si el encuestado declara tener un problema de salud mental y 0 si no lo declara.
 
 Esta clasificación nos ayudará a decidir cómo preparar las variables antes del entrenamiento de los modelos.
 
@@ -376,8 +376,8 @@ La variable que queremos predecir es `Has_Mental_Health_Issue`, que indica si un
 
 Se trata de una variable binaria:
 
-- **0:** no declara un problema de salud mental.
-- **1:** declara un problema de salud mental.
+-   **0:** no declara un problema de salud mental.
+-   **1:** declara un problema de salud mental.
 
 Es importante señalar que esta variable representa la declaración del encuestado y no necesariamente un diagnóstico clínico.
 
@@ -629,17 +629,234 @@ sum(sapply(datos_raw, is.character))
 
 No hay valores perdidos, duplicados, variables con varianza casi nula ni variables redundantes, así que **no hace falta imputar ni eliminar variables**. El preprocesado previsto, aprendido solo con el conjunto de entrenamiento y aplicado igual al de test, es:
 
-- **Variable objetivo** como factor con niveles `"Si"` y `"No"`, necesario para calcular la curva ROC con CARET.
-- **One-hot encoding** de las 13 variables categóricas con `dummyVars()`.
-- **Estandarización** (`preProcess(method = c("center", "scale"))`), ya que las variables tienen escalas distintas y algunos modelos, como KNN, se basan en distancias.
+-   **Variable objetivo** como factor con niveles `"Si"` y `"No"`, necesario para calcular la curva ROC con CARET.
+-   **One-hot encoding** de las 13 variables categóricas con `dummyVars()`.
+-   **Estandarización** (`preProcess(method = c("center", "scale"))`), ya que las variables tienen escalas distintas y algunos modelos, como KNN, se basan en distancias.
 
 ## Estrategia de evaluación y métricas
 
-> **Pendiente:** división en entrenamiento y test, validación cruzada, tratamiento del desbalanceo si lo hay y métricas de evaluación.
+Para evaluar los modelos de clasificación, dividiremos el conjunto de datos en dos partes: entrenamiento y prueba. Esto nos permitirá entrenar los modelos con unos datos y comprobar su rendimiento utilizando observaciones que no hayan visto anteriormente.
+
+### División de los datos
+
+Utilizaremos el **80 % de los datos para entrenamiento** y el **20 % restante para prueba**.
+
+La división será estratificada, de manera que se mantenga aproximadamente la misma proporción de personas con y sin problemas de salud mental en ambos conjuntos.
+
+Para ello utilizamos la función `createDataPartition()` del paquete `caret`.
+
+```{r division-datos}
+# Convertimos la variable objetivo en factor
+datos_raw$Has_Mental_Health_Issue <- factor(
+  datos_raw$Has_Mental_Health_Issue,
+  levels = c(1, 0),
+  labels = c("Si", "No")
+)
+
+# Semilla para reproducibilidad
+set.seed(2026)
+
+# División: 80% entrenamiento y 20% test
+indices <- createDataPartition(
+  datos_raw$Has_Mental_Health_Issue,
+  p = 0.8,
+  list = FALSE
+)
+
+train <- datos_raw[indices, ]
+test <- datos_raw[-indices, ]
+
+# Dimensiones de cada conjunto
+dim(train)
+dim(test)
+
+# Distribución de las clases
+prop.table(table(train$Has_Mental_Health_Issue))
+prop.table(table(test$Has_Mental_Health_Issue))
+```
+
+Con esta división obtenemos aproximadamente 8.000 observaciones para entrenamiento y 2.000 para prueba.
+
+La estratificación es importante porque nuestra variable objetivo está muy desbalanceada. De esta forma evitamos que una de las clases quede poco representada en alguno de los conjuntos.
+
+El conjunto de prueba se reservará hasta el final, para evaluar el rendimiento de los modelos una vez seleccionados y ajustados.
+
+### Validación cruzada
+
+Dentro del conjunto de entrenamiento utilizaremos **validación cruzada de 5 particiones (5-fold cross-validation)**.
+
+Este procedimiento consiste en dividir los datos de entrenamiento en cinco partes. En cada iteración se utilizan cuatro partes para entrenar y una para validar, repitiendo el proceso hasta que todas hayan sido utilizadas para validación.
+
+De esta forma obtenemos una estimación más fiable del rendimiento y reducimos la dependencia de una única división de los datos.
+
+Utilizaremos la función `trainControl()` de `caret` para establecer esta estrategia.
+
+```{r validacion-cruzada}
+# Configuración de la validación cruzada
+set.seed(2026)
+
+control <- trainControl(
+  method = "cv",
+  number = 5,
+  classProbs = TRUE,
+  summaryFunction = twoClassSummary,
+  savePredictions = "final"
+)
+
+control
+```
+
+La función `twoClassSummary` permitirá utilizar métricas como el AUC, la sensibilidad y la especificidad durante la validación.
+
+Esta configuración se utilizará posteriormente para entrenar y comparar los distintos algoritmos con `caret`.
+
+### Tratamiento del desbalanceo
+
+Como hemos comprobado en la inspección, aproximadamente el 92,2 % de los encuestados declara tener un problema de salud mental, mientras que únicamente el 7,8 % no lo declara.
+
+Este desbalanceo puede provocar que los modelos favorezcan la clase mayoritaria y tengan dificultades para identificar la minoritaria.
+
+Para estudiar este problema, compararemos tres estrategias:
+
+-   **Sin remuestreo:** entrenar con la distribución original.
+-   **Submuestreo (down-sampling):** reducir observaciones de la clase mayoritaria durante el entrenamiento.
+-   **Sobremuestreo (up-sampling):** aumentar la representación de la clase minoritaria durante el entrenamiento.
+
+Estas técnicas se aplicarán únicamente a los datos de entrenamiento, dentro de la validación cruzada, para evitar modificar el conjunto de prueba.
+
+En `caret` podemos configurar estas estrategias de la siguiente manera:
+
+```{r desbalanceo}
+# Sin remuestreo
+control_original <- control
+
+# Submuestreo
+control_down <- trainControl(
+  method = "cv",
+  number = 5,
+  classProbs = TRUE,
+  summaryFunction = twoClassSummary,
+  sampling = "down",
+  savePredictions = "final"
+)
+
+# Sobremuestreo
+control_up <- trainControl(
+  method = "cv",
+  number = 5,
+  classProbs = TRUE,
+  summaryFunction = twoClassSummary,
+  sampling = "up",
+  savePredictions = "final"
+)
+```
+
+Posteriormente compararemos el rendimiento de los modelos con estas tres estrategias para comprobar cuál permite identificar mejor ambas clases.
+
+### Métricas de evaluación
+
+Debido al desbalanceo, no utilizaremos únicamente la exactitud (*accuracy*) para comparar los modelos.
+
+Las principales métricas serán:
+
+| Métrica | Qué mide |
+|----|----|
+| Accuracy | Porcentaje total de predicciones correctas |
+| Sensibilidad | Capacidad de identificar correctamente los casos positivos |
+| Especificidad | Capacidad de identificar correctamente los casos negativos |
+| Balanced Accuracy | Media de la sensibilidad y la especificidad |
+| AUC-ROC | Capacidad del modelo para distinguir entre las dos clases a diferentes umbrales |
+| Matriz de confusión | Número de aciertos y errores en cada clase |
+
+Consideraremos como clase positiva `Si`, correspondiente a las personas que declaran un problema de salud mental. También prestaremos especial atención a la especificidad, ya que permite evaluar el reconocimiento de la clase minoritaria `No`.
+
+La métrica principal para comparar los modelos durante la validación será el **AUC-ROC**, junto con la sensibilidad y la especificidad.
+
+La exactitud balanceada también será importante, porque da el mismo peso a ambas clases independientemente de su tamaño.
+
+Como referencia, un modelo que predijera siempre la clase mayoritaria alcanzaría aproximadamente un 92,2 % de accuracy, pero tendría una balanced accuracy del 50 %.
+
+Por ello, será necesario comprobar que nuestros modelos mejoran esta referencia y no se limitan a predecir siempre la misma clase.
 
 ## Modelos a comparar
 
-> **Pendiente:** algoritmos de clasificación que se van a entrenar y ajustar, y cómo se compararán.
+Para realizar el análisis supervisado compararemos distintos algoritmos de clasificación, utilizando el paquete `caret` y las técnicas estudiadas en la asignatura.
+
+El objetivo es comprobar qué algoritmo consigue distinguir mejor entre las personas que declaran problemas de salud mental y aquellas que no los declaran.
+
+Seleccionaremos los siguientes modelos:
+
+### Algoritmos seleccionados
+
+```{r modelos-comparar}
+modelos <- data.frame(
+  Algoritmo = c(
+    "Regresión logística",
+    "Árbol de decisión",
+    "KNN",
+    "Random Forest"
+  ),
+
+  Metodo_caret = c(
+    "glm",
+    "rpart",
+    "knn",
+    "rf"
+  ),
+
+  Descripcion = c(
+    "Estima la probabilidad de pertenecer a una clase",
+    "Clasifica mediante reglas de decisión",
+    "Clasifica según los vecinos más cercanos",
+    "Combina varios árboles de decisión"
+  )
+)
+
+kable(modelos, row.names = FALSE,
+      caption = "Modelos de clasificación que se compararán")
+```
+
+**Regresión logística:** se utilizará como modelo sencillo de referencia. Permite estimar la probabilidad de que una observación pertenezca a una clase a partir de sus características.
+
+**Árbol de decisión:** divide los datos mediante reglas basadas en las variables predictoras. Su principal ventaja es que permite interpretar fácilmente las decisiones.
+
+**KNN (K-Nearest Neighbors):** clasifica una observación según las clases de sus vecinos más cercanos. Para este algoritmo será importante estandarizar previamente las variables, ya que utiliza distancias.
+
+**Random Forest:** combina múltiples árboles de decisión para obtener una predicción conjunta. Puede captar relaciones más complejas entre las variables y reducir la dependencia de un único árbol.
+
+### Ajuste y comparación de los modelos
+
+Todos los algoritmos se entrenarán utilizando el mismo conjunto de entrenamiento y las mismas particiones de validación cruzada.
+
+Se ajustarán los principales parámetros de cada modelo:
+
+-   **Regresión logística:** se utilizará como modelo de referencia, sin hiperparámetros principales de ajuste.
+-   **Árbol de decisión:** se ajustará el parámetro `cp`, que controla la complejidad del árbol.
+-   **KNN:** se probarán diferentes valores de `k`, que representa el número de vecinos.
+-   **Random Forest:** se ajustará `mtry`, que indica el número de variables consideradas en cada división de los árboles.
+
+El entrenamiento se realizará mediante la función `train()` de `caret`.
+
+Por ejemplo, para el árbol de decisión se utilizará una estructura como la siguiente:
+
+```{r ejemplo-entrenamiento, eval=FALSE}
+# Ejemplo de entrenamiento de un árbol
+modelo_arbol <- train(
+  Has_Mental_Health_Issue ~ .,
+  data = train,
+  method = "rpart",
+  trControl = control,
+  metric = "ROC"
+)
+```
+
+Este bloque muestra cómo se realizará el entrenamiento en el siguiente seguimiento; todavía no se ejecuta.
+
+Para comparar los resultados utilizaremos las métricas obtenidas en la validación cruzada, especialmente el AUC, la sensibilidad y la especificidad.
+
+En la comparación se tendrá en cuenta tanto el rendimiento predictivo como la facilidad para interpretar los modelos.
+
+Finalmente, el modelo seleccionado se evaluará sobre el conjunto de prueba, que no se utilizará durante el entrenamiento ni el ajuste de parámetros.
 
 ## Selección de variables
 
