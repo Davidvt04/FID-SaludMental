@@ -488,11 +488,17 @@ datos_raw %>% select(all_of(sintomas), Panic_Attacks) %>% pivot_longer(everythin
   labs(title = "Distribución de los síntomas", x = "Intensidad del síntoma", y = "Frecuencia")
 ```
 
-**Interpretación.** Las variables continuas tienen distribuciones aproximadamente **simétricas** (edad, horas de trabajo, sueño, pantalla) o **ligeramente asimétricas a la derecha** (cafeína, redes sociales, ocio, amigos). Los atípicos son pocos, como mucho el `r fmt(max(atipicos$"Atípicos (%)"), 1)` % de una variable, y todos son **valores plausibles** (por ejemplo, 70 horas de trabajo o 11 horas de sueño), no errores de medida. **Decisión:** no los eliminamos; los modelos de árboles son insensibles a ellos y en los demás el escalado reduce su influencia. Los doce síntomas tienen una distribución **casi uniforme** entre 0 y 10, algo poco habitual en datos clínicos reales, donde esperaríamos muchas personas con pocos síntomas y pocas con muchos. Solo los ataques de pánico tienen esa forma asimétrica.\
+**Interpretación.** Las variables continuas tienen distribuciones aproximadamente **simétricas** (edad, horas de trabajo, sueño, pantalla) o **ligeramente asimétricas a la derecha** (cafeína, redes sociales, ocio, amigos). Los atípicos son pocos, como mucho el `r round(max(atipicos$"Atípicos (%)"), 1)` % de una variable, y todos son **valores plausibles** (por ejemplo, 70 horas de trabajo o 11 horas de sueño), no errores de medida. **Decisión:** no los eliminamos; los modelos de árboles son insensibles a ellos y en los demás el escalado reduce su influencia. Los doce síntomas tienen una distribución **casi uniforme** entre 0 y 10, algo poco habitual en datos clínicos reales, donde esperaríamos muchas personas con pocos síntomas y pocas con muchos. Solo los ataques de pánico tienen esa forma asimétrica.\
 
 ## Distribución de las variables categóricas
 
 ```{r barras-categoricas, fig.height=9}
+# Tabla de frecuencias de cada variable categórica (Variable, Categoría, Frecuencia)
+frec_cat <- do.call(rbind, lapply(names(datos_cat), function(v) {
+  t <- table(datos_cat[[v]])
+  data.frame(Variable = v, Categoría = names(t), Frecuencia = as.numeric(t))
+}))
+
 # Diagrama de barras horizontal de cada variable categórica, ordenado por frecuencia
 frec_cat %>%
   ggplot(aes(x = reorder(Categoría, Frecuencia), y = Frecuencia)) +
@@ -643,4 +649,24 @@ No hay valores perdidos, duplicados, variables con varianza casi nula ni variabl
 
 ## Selección de variables
 
-> **Pendiente:** métodos de selección de variables de tipo filtro y wrapper que se van a aplicar.
+Como hay 50 predictoras con una relación débil con la objetivo, se aplicarán dos tipos de selección de variables:
+
+-   **Filtro** (sin entrenar modelos): eliminar variables con varianza casi nula (`nearZeroVar`) o muy correlacionadas (`findCorrelation`), ya comprobado en el preprocesado, y ordenar las predictoras según su correlación con la objetivo.
+-   **Wrapper** (entrenando modelos): eliminación recursiva de características con `rfe()`, que entrena el modelo repetidas veces y va descartando las variables menos importantes.
+
+Después se compararán los modelos **con todas las variables** y **con las seleccionadas**. Como primera prueba, se aplican ambos métodos a las predictoras numéricas:
+
+```{r seleccion-variables}
+# Filtro: las 10 predictoras más correlacionadas (en valor absoluto) con la objetivo
+cor_objetivo[order(-abs(cor_objetivo$Correlacion)), ][1:10, ]
+
+# Wrapper: eliminación recursiva con regresión logística y validación cruzada de 5 folds
+set.seed(2026)
+objetivo <- factor(ifelse(datos_raw$Has_Mental_Health_Issue == 1, "Si", "No"))
+rfe_ctrl <- rfeControl(functions = lrFuncs, method = "cv", number = 5)
+rfe_res  <- rfe(x = predictoras, y = objetivo, sizes = c(5, 10, 20), rfeControl = rfe_ctrl)
+rfe_res
+predictors(rfe_res)
+```
+
+Ambos métodos coinciden en las variables más relevantes (estrés laboral, antecedentes familiares, tristeza, apoyo social y ansiedad). Sin embargo, `rfe` obtiene la misma *accuracy* (92,2 %, la del ZeroR) con cualquier número de variables: con este desbalanceo, la selección deberá guiarse por la **ROC** y no por la *accuracy*.
