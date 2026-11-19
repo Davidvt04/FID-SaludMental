@@ -1,0 +1,265 @@
+---
+title: "Estudio inicial de un Data Frame"
+output: html_notebook
+---
+
+En R vienen cargados una serie de conjuntos de datos por defecto, basta escribir *data()* en la consola para verlos. En este ejercicio vamos a trabajar con datos de **iris** sobre un tipo específico de flores. Este conjunto de datos se suele usar como ejemplo de estudio.
+
+El análisis exploratorio de datos o **EDA (Exploratory Data Analysis)** engloba un conjunto de técnicas para comprender de manera rápida la naturaleza de una colección de datos. Fue creado por el estadístico John Tukey y se basa principalmente en dos criterios: **estadísticas de resumen** y la **visualización** de datos.
+
+# Estadística de los datos
+
+Antes de comenzar debemos comprobar si el dataset está cargado correctamente.
+
+```{r}
+
+# Visualiza los datos cargados por defecto: data()
+data()
+
+# Vemos si está cargado el dataset: basta poner su nombre
+iris
+
+```
+
+### Resumen de los datos
+
+La función head() sirve para ver cómo es la matriz de datos y, por otro lado, la función str() permute ver la estructura del data frame asociado.
+
+```{r}
+
+# Aplique la función head() a los datos
+head(iris)
+# Muestre sólo las cuatro primeras filas. 
+head(iris,4)
+# help(head) para estudiar los parámetros de la función
+
+
+# Aplique la función str() y observe la información que suministra
+str(iris)
+# ¿cuántas filas y columnas hay? ¿cuántas variables son numéricas? 
+nrow(iris)
+ncol(iris)
+sum(sapply(iris, is.numeric))
+# Averigue el tamaño asociado: función dim()
+dim(iris)
+```
+
+### Otras funciones importantes
+
+```{r}
+# La función tail() muestra la parte final del data frame
+tail(iris)
+# La función colnames() permite ver el nombre de las columnas
+colnames(iris)
+# Aplique la función attributes() y vea para qué sirve
+attributes(iris)
+```
+
+### Estudio de una columna
+
+Veamos cómo inspeccionar la columna *Sepal.Length*. Queremos ver los diez primeros elementos de dicha columna.
+
+```{r}
+
+# Primera forma: trabajar con matrices
+matriz <- as.matrix(iris)
+matriz[1:10,1]
+
+# Primera forma: trabajar con el nombre de la columna
+iris$Sepal.Length[1:10]
+```
+
+### Resumen estadístico de los datos
+
+La función *summary* permite ver un resumen detallado de los datos. ¿Qué información aporta?
+
+```{r}
+# Función summary()
+# numeric variables: minimum, maximum, mean, median, and
+# -> the first (25%) and third (75%) quartiles
+# -> categorical variables (factors): frequency of every level
+
+```
+
+### Resumen estadístico de columnas en concreto
+
+Veamos cómo se calculan los momentos estadísticos más comunes de una columna en concreto, por ejemplo *Sepal.Length*.
+
+La **frecuencia** de un valor de atributo es el número de veces que este es observado.
+
+```{r}
+# Frecuencia
+frecuencias <- table(iris$Sepal.Length)
+as.data.frame(frecuencias)
+```
+
+El rango de una variable:
+
+```{r}
+# Rango: función range()
+range(iris$Sepal.Length)
+```
+
+La **media**, **la mediana** y la **varianza** son medidas de tendencia central. Es decir, separan las observaciones en dos partes. Consulte Wikipedia para repasar su significado.
+
+```{r}
+
+# Media: función mean()
+mean(iris$Sepal.Length)
+# Mediana: función median()
+median(iris$Sepal.Length)
+# Varianza: función var()
+var(iris$Sepal.Length)
+```
+
+La **covarianza** se usa para comparar una variable respecto a otra. La covarianza cov(x, y) mide el grado de variacion lineal conjunta de un par de variables x, y, teniendo en cuenta que cov(x, x) = var (x).
+
+```{r}
+# Covarianza
+cov(iris$Sepal.Length,iris$Sepal.Width)
+
+```
+
+Si dos variables son independientes entre si, su covarianza es cero. Para tener una medida de relación que no dependa de la escala de cada, variable, usamos la correlación lineal, con un valor que varía entre -1 a 1. Un valor cercano a 1 indica que mientras una variable crece la otra tambien lo hace en una proporción lineal. Un valor cercano a -1 indica una relacion inversa (una crece la otra decrece). Si la correlaci?n es cercana a cero tenemos independencia lineal. Eso no implica que no pueda haber una relacion no-lineal entre las variables.
+
+```{r}
+# correlación
+cor(iris$Sepal.Length,iris$Sepal.Width)
+```
+
+### Anexo: variables categóricas
+
+Nota: Dado que en iris no hay dos variables categóricas, nos inventamos este ejemplo.
+
+Para analizar la relación entre variables de naturaleza categórica usamos tablas de contingencia. La tabla se llena con las frecuencias marginales de todos los pares de valores entre dos variables categoricas. En R se crean usando el comando table que usabamos para frecuencias, pero entregandole dos vectores:
+
+```{r}
+
+# creamos datos para 10 individuos
+edad=c(18,19,NA,18,24,17,22,15,22,25)
+sexo=c(0,1,0,0,1,0,0,1,1,0)
+estudios=c(1,2,0,1,3,2,3,1,2,3)
+
+# Recodificamos como factores el sexo y el nivel de estudios, asignando las etiquetas adecuadas:
+sexo=factor(sexo, levels=c(0,1),
+                  labels=c("Hombre","Mujer"))
+estudios=factor(estudios, levels=c(0,1,2,3),
+                      labels=c("Sin estudios","Estudios Primarios",
+                               "Estudios Secundarios","Estudios Superiores"))
+datos<-cbind(edad, sexo, estudios)
+datos
+table(estudios, sexo)
+```
+
+Igual que con la frecuencia, podemos trabajar con porcentajes
+
+```{r}
+prop.table(table(estudios, sexo))
+```
+
+Para las frecuencias relativas, en prop.table() incluimos un 1 si las queremos por filas, un 2 si por columnas, o nada si queremos las frecuencias relativas globales como hemos hecho:
+
+```{r}
+prop.table(table(estudios,sexo),1)
+prop.table(table(estudios,sexo),2)
+```
+
+# Visualización
+
+La visualizacion de datos es la transformación de un dataset a un formato visual que permita a las personas identificar las características y las relaciones entre los elementos del dataset. La visualizacion permite que las personas reconozcan patrones o tendencias en base a su criterio en el dominio particular.
+
+En R la funcion de visualización más frecuente es plot(). Es una funcion genérica cuyo resultado depende de la naturaleza de las variables usadas.
+
+```{r}
+#plot
+plot(datos)
+
+```
+
+### Exploración visual de una varible en concreto.
+
+Nos centramos en unas de las variables concreto, por ejemplo *Sepal.Length*.
+
+Realicemos una serie de visualizacions más comunes.
+
+- **Histogramas**
+
+Muestran la distribución de los valores de una variable. Los valores de los elementos se dividen en contenedores (bins) y se crean graficos de barra por cada contenedor. La altura de cada barra indica el numero de elementos o frecuencia del contenedor. En R se crean con el comando hist.
+
+```{r}
+#Histograma: https://es.wikipedia.org/wiki/Histograma
+plot(hist(iris$Sepal.Length))
+
+```
+
+- **Densidad**
+
+Otra forma de visualizar como se distribuyen los datos es estimando una densidad.
+
+```{r}
+#Densidad: distribución de una variable
+
+plot(density(iris$Sepal.Length))
+```
+
+- **Gráficos de tarta**
+
+Los graficos de tarta (pie charts) representan la frecuencia de los elementos en un círculo. Cada elemento tiene una participación proporcional a su frecuencia relativa. Se usan generalmente para variables categoricas.
+
+```{r}
+#Gráfico de tarta 
+pie(iris$Sepal.Length)
+```
+
+- **Boxplots**
+
+Los Boxplots o diagramas de caja se construyen a partir de los percentiles. Se construye una rectangulo usando entre el primer y el tercer cuartil (Q1 y Q3). El boxplot nos entrega información sobre la simetría de la distribución de los datos. Si la mediana no esta en el centro del rectángulo, la distribución no es simétrica. Son útiles para ver la presencia de outliers.
+
+```{r}
+# 
+boxplot(iris$Sepal.Length)
+
+
+```
+
+- **Diagrama de barras**
+
+```{r}
+#Diagrama de barras
+
+barplot(iris$Sepal.Length)
+```
+
+### Exploración visual de varias variables
+
+Realicemos una serie de visualizaciones teniendo en cuenta varias variables.
+
+```{r}
+#Covarianza de dos variables:
+covarianza= cov(iris$Sepal.Length, iris$Petal.Width)
+
+
+#Correlación de dos variables:
+correlacion= cor(iris$Sepal.Length, iris$Petal.Width)
+
+#Creamos los Boxplot (diagramas de cajas)
+boxplot(iris$Sepal.Length,iris$Petal.Width)
+
+#Dispersión entre dos variables
+plot(iris$Sepal.Length, iris$Petal.Width,
+     main = "Diagrama de dispersión",
+     xlab = "Sepal.Length",
+     ylab = "Petal.Width",
+     col = "blue",
+     pch = 19)
+
+#La matriz al completo
+
+# Matriz de covarianzas
+cov(iris[, 1:4])
+
+# Matriz de correlaciones
+cor(iris[, 1:4])
+
+
+```

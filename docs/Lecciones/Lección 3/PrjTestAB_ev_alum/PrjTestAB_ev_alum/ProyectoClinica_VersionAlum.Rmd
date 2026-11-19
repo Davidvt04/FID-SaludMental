@@ -1,0 +1,125 @@
+---
+title: "Contraste de hipótesis. Proyecto Dr. Ignaz Semmelweis"
+#author: "Isabel A. Nepomuceno Chamorro"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Proyecto sobre estudio de Dr. Ignaz Semmelweis
+
+En la primera mitad del siglo XIX, tenía mayor riesgo ser asistida durante un parto en el hospital que en casa.
+
+*Ignaz Philipp Semmelweis (en húngaro: Semmelweis Ignác Fülöp; Budapest, 1 de julio de 1818-Lazarettgasse, 13 de agosto de 1865) fue un médico húngaro de origen alemán que hoy es reconocido como el creador de los procedimientos antisépticos. Semmelweis es llamado el "salvador de madres" pues descubrió que la incidencia de la sepsis puerperal o fiebre puerperal (también conocida como "fiebre del parto", "childbed fever") podía ser disminuida drásticamente usando desinfección de las manos en las clínicas obstétricas.*
+
+*La fiebre puerperal era habitual en los hospitales a mediados del siglo XIX con un desenlace frecuentemente fatal provocando la muerte de un 10-35% de las parturientas.*
+
+*Semmelweis, en el año 1847, propuso lavarse cuidadosamente las manos con una solución de hipoclorito cálcico cuando él trabajaba en la Primera Clínica Obstétrica (Clínica I) del Hospital General de Viena (Allgemeines Krankenhaus der Stadt Wien) donde la mortalidad entre las pacientes hospitalizadas en la sala atendida por obstetras (Clínica I) era de tres a cinco veces más alta que en la sala atendida por matronas (Clínica II).* (<https://es.wikipedia.org/wiki/Ignaz_Semmelweis>)
+
+En este proyecto, vamos a volver a analizar los datos que hicieron que Semmelweis descubriera la importancia del lavado de manos. Para ello realice los siguientes pasos.
+
+## 1. Importación de datos
+
+Comencemos por ver los datos que hicieron que Semmelweis se diera cuenta de que algo andaba mal con los procedimientos en el Hospital General de Viena.
+
+```{r cars}
+# Carga tidyverse package
+library(tidyverse)
+
+# Lee fichero datasets/dataset.csv
+ds <-read.csv("dataset/dataset.csv", sep=";")
+
+
+# Inspecciona el datset
+head(ds)
+dim(ds)
+
+```
+
+## 2. Alarmante número de muertes
+
+¿Qué se observa en el dataset? Si te fijas puedes observar que el número de muertes en la clínica 1 cad año es mayor que el número de muertes en la clínica 2. Para resaltar este dato, vamos añadir una columna al dataset con la proporción de número de muertes sobre el número de mujeres que dan luz.
+
+```{r}
+# Añadir una nueva columna con la proporción de muertes por nacimiento utilizando la función mutate
+yearly <- ds  %>% mutate(proportion_deaths = deaths/births)
+
+# Print out yearly
+yearly
+```
+
+Veamos gráficamente el número de muertes en la clínica I y clínica II de Viena durante los años registrados del 41 al 46.
+
+```{r}
+# Setting the size of plots in this notebook
+options(repr.plot.width=7, repr.plot.height=4)
+
+# Plot yearly proportion of deaths at the two clinics
+ggplot(yearly, aes(x = year, 
+                   y = proportion_deaths, 
+                   col = clinic)) + 
+  geom_line()
+```
+
+## 3. Comienza el lavado de mano.
+
+A partir del verano de 1847, la proporción de muertes se reduce drásticamente y, sí, fue entonces cuando Semmelweis hizo obligatorio el lavado de manos. Cargamos el dataset en donde se registra por mes el número de muertes y partir de Junio de 1847 se aplicaba lavar las manos y eeamos gráficamente este hecho.
+
+```{r}
+# Read datasets/monthly_deaths.csv into monthly
+monthly <- read.csv("dataset/monthly_deaths.csv")
+str(monthly)
+dim(monthly)
+
+
+# Adding a new column with proportion of deaths per no. births
+monthly <- monthly  %>% mutate(proportion_deaths = deaths/births)
+
+# Print out the first rows in monthly
+monthly
+```
+
+```{r}
+# From this date handwashing was made mandatory
+handwashing_start = as.Date('1847-06-01')
+
+# Add a TRUE/FALSE column to monthly called handwashing_started
+monthly <- monthly  %>% 
+mutate(handwashing_started = ifelse(date >= handwashing_start, TRUE, FALSE))
+
+
+# Plot monthly proportion of deaths before and after handwashing
+ggplot(monthly, aes(x = date, y = proportion_deaths, col =  handwashing_started, group = handwashing_start)) + 
+geom_line()
+```
+
+## 4. ¿Más lavados de manos implica menos muertes?
+
+Una vez más, el gráfico muestra que el lavado de manos tuvo un efecto enorme. ¿En qué medida redujo la proporción mensual de muertes en promedio? Realizamos el cálculo de ratio de conversión que hemos aprendido en el proyecto de los gatos.
+
+```{r}
+# Calculating the mean proportion of deaths 
+# before and after handwashing.
+
+monthly_summary <- monthly  %>% group_by(handwashing_started) %>% 
+            summarise(mean_proportion_deaths = mean(proportion_deaths))
+
+# Printing out the summary.
+monthly_summary
+```
+
+Observamos que se redujo la proporción de muertes en alrededor de 8 puntos porcentuales. De un 10% en promedio antes del lavado de manos a sólo un 2% cuando el lavado de manos era obligatorio (que sigue siendo un número elevado en comparación con los estándares modernos). Para tener una idea de la incertidumbre acerca de cuánta cantidad de lavado de manos reduce la mortalidad, podríamos considerar un intervalo de confianza del 95% y calculando una prueba t.
+
+```{r}
+# Calculating a 95% Confidence intrerval using t.test 
+test_result <- t.test( proportion_deaths ~ handwashing_started, data = monthly)
+test_result
+```
+
+Observamos que el valor p es menor a 0.05 por lo que podemos concluir que aplicar el lavado de manos mejora significativamente los resultados.
+
+Finalmente y a modo de curiosidad simplemente indicar que el Dr. Semmelweis fue denostado por la comunidad de médicos de Viena y en 1849 fue expulsado del hospital de Viena.
+
+#####-------------------------------------------------------------------------------- \##### FUENTE: DataCamp: proyecto "Discovery of handwashing by Dr.Semmelweis" #####--------------------------------------------------------------------------------

@@ -1,0 +1,359 @@
+---
+title: "Clustering: parte I (resuelto)"
+output: html_notebook
+---
+
+Los algoritmos de *clustering* - en español algoritmos de agrupamiento - construyen grupos de instancias con un mismo comportamiento. Se pueden ver, por lo tanto, como algoritmos que buscan patrones dentro de los datos que estudiamos. Tratan de buscar ejemplos del conjunto de datos con un mismo comportamiento. Ya hemos visto que los dos principales algoritmos son el k-means y los algoritmos de clustering jerárquico.
+
+Veamos un ejemplo en el que trabajamos con puntos en el plano. De esta forma, trabajando con un ejemplo pequeño en tan sólo dos dimensiones, comprenderemos mejor el funcionamiento de estos algoritmos.
+
+Trabajaremos con un fichero de nombre "toy_example.txt" que representa puntos en el plano (dos dimensiones).
+
+```{r}
+
+# Carga el fichero.
+# Nota: al descomprimir data.zip el fichero queda en "data/data/toy_example.txt";
+# se comprueba qué ruta existe para que el cuaderno funcione en ambos casos.
+ruta <- if (file.exists("data/toy_example.txt")) "data/toy_example.txt" else "data/data/toy_example.txt"
+
+puntos <- read.delim(ruta,
+                     sep = "\t",
+                     head = FALSE)
+
+# Visualiza su disposición en el plano
+plot(puntos) # Los representamos geométricamente
+
+```
+
+Explora brevemente el conjunto de datos:
+
+- ¿cómo es el *dataframe*?
+
+```{r}
+
+# Función head:
+head(puntos)
+
+```
+
+El *dataframe* tiene dos columnas, `V1` y `V2` (nombres asignados automáticamente al leer sin cabecera), que corresponden a las coordenadas *x* e *y* de cada punto.
+
+- estructura, para comprobar que son datos numéricos.
+
+```{r}
+
+# Función str
+str(puntos)
+
+```
+
+Ambas variables son de tipo `num`, por lo que pueden utilizarse directamente para calcular distancias.
+
+- dimensión, para ver el número de puntos.
+
+```{r}
+
+# Función dim
+dim(puntos)
+
+```
+
+El conjunto contiene 300 puntos (filas) descritos por 2 variables (columnas).
+
+### Algoritmo k-Means
+
+El algoritmo k-Means se basa en la elección de un número de dado de centros de masa - de ahí el parámetro 'k' - y la proximidad, según una determinada distancia, de los puntos a cada uno de ellos. Cada centro de masa se recalcula, de manera iterativa, y cuando el proceso es estable se obtienen, por proximidad, los clústeres o grupos deseados.
+
+Como ya comentamos, este algoritmo es muy rápido pero tiene como principal inconveniente el saber cuál es el mejor valor para el parámetro k.
+
+Utiliza la función **kmeans** y aplica una vez el algoritmo con tres centros de masa. Valor de k=3. Nota: consulta los parámetros de entrada *help(kmeans)*. ¿Cuántos parámetros son obligatorios al hacer la llamada? ¿Cuál es el valor por defecto del parámetro *nstar*?
+
+**Respuesta.** La firma de la función es `kmeans(x, centers, iter.max = 10, nstart = 1, algorithm = c("Hartigan-Wong", "Lloyd", "Forgy", "MacQueen"), trace = FALSE)`. Son obligatorios **dos** parámetros: `x` (los datos) y `centers` (el número de clústeres *k* o una matriz con los centros iniciales); el resto tiene valor por defecto. El parámetro se llama en realidad `nstart` y su valor por defecto es **1**.
+
+```{r}
+
+# Aplicamos el algoritmo k-means con tres centros de masa y el parámetro nstart igual a 20
+set.seed(1234)  # para que los resultados sean reproducibles
+km_puntos <- kmeans(puntos, centers = 3, nstart = 20)
+
+```
+
+Inspeccionamos el resultado que hemos guardado, al hacer la llamada en una variable,
+
+- ¿Qué devuelve la función *summary*?
+
+```{r}
+
+summary(km_puntos)
+
+```
+
+`summary` no resume el agrupamiento, sino que enumera los componentes del objeto de clase `kmeans` (que es una lista) indicando su longitud, clase y modo: `cluster`, `centers`, `totss`, `withinss`, `tot.withinss`, `betweenss`, `size`, `iter` e `ifault`.
+
+- ¿Qué se obtiene al invocar "..\$cluster" sobre la variable?
+
+```{r}
+
+km_puntos$cluster
+
+```
+
+Se obtiene un vector de enteros de longitud 300 que indica, para cada punto, el número del clúster (1, 2 o 3) al que ha sido asignado.
+
+- ¿Y si imprime simplemente la variable?
+
+```{r}
+
+km_puntos
+
+```
+
+Al imprimir el objeto se muestra: el tamaño de cada clúster, las coordenadas de los centroides (*cluster means*), el vector de asignación (*clustering vector*), la suma de cuadrados intraclúster de cada grupo, el cociente `between_SS / total_SS` (proporción de la varianza explicada por el agrupamiento) y la lista de componentes disponibles.
+
+Visualicemos los resultados mediante la función plot pero pasando como parámetro para el color los clústeres obtenidos.
+
+```{r}
+
+plot(puntos,
+     col = km_puntos$cluster,
+     main = "k-means con k = 3",
+     xlab = "", ylab = "")
+points(km_puntos$centers, col = 1:3, pch = 8, cex = 2, lwd = 2)  # centroides
+
+```
+
+### Algoritmo k-Means: control de la aleatoriedad
+
+¿Para que sirve la condicion nstart=20?
+
+Si has leído con detenimiento la ayuda habrás comprobado que el valor de este parámetro sirve para controlar la aleatoriedad, inherente al algoritmo k-Means.
+
+Ejecutemos el algoritmo seis veces con el valor de *nstart=1* y, una vez visto los resultados, repitamos el experimento con *nstart=20*.
+
+- *nstart=1*
+
+```{r}
+
+par(mfrow = c(2, 3))   # 6 gráficos en una rejilla de 2 x 3
+set.seed(1)
+
+for (i in 1:6) {
+  km.out1 <- kmeans(puntos, centers = 3, nstart = 1)
+  plot(puntos,
+       col = km.out1$cluster,
+       main = paste("nstart=1 | tot.withinss =", round(km.out1$tot.withinss, 1)),
+       xlab = "", ylab = "", cex.main = 0.8)
+}
+
+par(mfrow = c(1, 1))
+
+```
+
+Con `nstart = 1` cada ejecución parte de una única inicialización aleatoria de los centros, de modo que el algoritmo puede quedar atrapado en un mínimo local: los agrupamientos (y el valor de `tot.withinss`) pueden variar de una ejecución a otra.
+
+- *nstart=20*
+
+```{r}
+
+par(mfrow = c(2, 3))
+set.seed(1)
+
+for (i in 1:6) {
+  km.out20 <- kmeans(puntos, centers = 3, nstart = 20)
+  plot(puntos,
+       col = km.out20$cluster,
+       main = paste("nstart=20 | tot.withinss =", round(km.out20$tot.withinss, 1)),
+       xlab = "", ylab = "", cex.main = 0.8)
+}
+
+par(mfrow = c(1, 1))
+
+```
+
+Con `nstart = 20` el algoritmo se ejecuta 20 veces con distintos centros iniciales y se queda con la solución de menor `tot.withinss`. Por ello las seis ejecuciones producen el mismo agrupamiento (salvo, en su caso, una permutación de las etiquetas/colores) y el resultado es estable.
+
+Estudio en la ayuda para qué sirven los parámetros:
+
+- `nstart`: número de conjuntos de centros iniciales aleatorios que se prueban cuando `centers` es un número. Se devuelve la mejor solución (la de menor suma de cuadrados intraclúster). Reduce la dependencia de la inicialización aleatoria.
+- `iter.max`: número máximo de iteraciones permitidas en cada ejecución (por defecto 10). Si se alcanza sin converger, R emite un aviso.
+
+### Algoritmo k-Means: ¿cómo elegir el valor de k?
+
+Mira en la ayuda el significado *tot.withinss* o valor de compactación. Realizaremos varias ejecuciones del algoritmo variando el valor de k y veremos cómo afecta al valor de compactación.
+
+`tot.withinss` es la suma total de cuadrados intraclúster, es decir, `sum(withinss)`: la suma, para todos los clústeres, de las distancias al cuadrado de cada punto a su centroide. Cuanto menor sea, más compactos son los grupos.
+
+- Ejecutamos el algoritmo variando el valor de k de manera incremental: de 1 a 15
+- Guardamos el valor de compactación en cada caso: los almacenamos en un vector
+- Representamos gráficamente esos valores
+
+Pregunta: ¿para qué valor de k se produce un cambio significativo?
+
+(En este caso el valor es k=2)
+
+```{r}
+
+wss <- numeric(15)   # vector para guardar tot.withinss
+
+set.seed(1234)
+for (k in 1:15) {
+  km.k <- kmeans(puntos, centers = k, nstart = 20)
+  wss[k] <- km.k$tot.withinss
+}
+
+plot(1:15, wss, type = "b", pch = 19,
+     xlab = "Número de clústeres (k)",
+     ylab = "Suma de cuadrados intraclúster (tot.withinss)",
+     main = "Método del codo")
+
+```
+
+El valor de `tot.withinss` desciende bruscamente al pasar de k = 1 (≈ 4211) a k = 2 (≈ 777); a partir de ahí la reducción es mucho más gradual (≈ 539 para k = 3, ≈ 432 para k = 4, etc.). El «codo» de la curva se sitúa, por tanto, en **k = 2**: añadir más clústeres apenas mejora la compactación. Se aprecia también un ligero cambio de pendiente en k = 3, lo que explica que k = 3 también ofrezca una partición razonable.
+
+```{r}
+
+# Resultado con el valor de k elegido por el método del codo
+km.2 <- kmeans(puntos, centers = 2, nstart = 20)
+plot(puntos, col = km.2$cluster, main = "k-means con k = 2", xlab = "", ylab = "")
+points(km.2$centers, col = 1:2, pch = 8, cex = 2, lwd = 2)
+
+```
+
+### Clustering jerárquico
+
+Los algoritmos de clustering jerárquico se basan en la construcción de un dendograma que se "corta" de una determinada manera. En función de cómo se construya este dendograma, y cómo se realice el corte, obtendremos un resultado u otro. Consulta la función **hclust**
+
+Primero construimos el dendograma para lo cual:
+
+- Se construye la matriz de distancias. ¿Qué distancia toma por defecto?
+- Se aplica la función hclust
+
+**Respuesta.** La función `dist` utiliza por defecto la distancia **euclídea** (`method = "euclidean"`). Por su parte, `hclust` usa por defecto el enlace **completo** (`method = "complete"`).
+
+```{r}
+
+d <- dist(puntos)            # matriz de distancias (euclídea por defecto)
+hclust.out <- hclust(d)      # enlace completo por defecto
+hclust.out
+
+```
+
+Visualicemos el dendograma.
+
+```{r}
+
+plot(hclust.out, labels = FALSE, hang = -1,
+     main = "Dendograma (enlace completo)", xlab = "", sub = "")
+
+# Línea de corte a una altura determinada (ejemplo)
+abline(h = 7, col = "red", lty = 2)
+
+```
+
+Y en función de dicho dendograma, construimos los clústeres. Consulta la función **cutree**
+
+El dendograma se «corta» con `cutree`, bien indicando la altura de corte (`h`), bien el número de grupos deseado (`k`).
+
+```{r}
+
+# Corte por altura
+grupos.h <- cutree(hclust.out, h = 7)
+table(grupos.h)
+
+# Corte por número de clústeres
+grupos.k <- cutree(hclust.out, k = 3)
+table(grupos.k)
+
+plot(puntos, col = grupos.k, main = "Clustering jerárquico (completo), k = 3",
+     xlab = "", ylab = "")
+
+```
+
+Estudiemos las distintas formas de construir el dendograma, en función de cómo definimos la idea de distancia de un punto a conjunto.
+
+- **Completo** (*complete*): distancia máxima entre pares de puntos de los dos grupos. Tiende a producir clústeres compactos y equilibrados.
+- **Simple** (*single*): distancia mínima entre pares de puntos. Puede provocar el «efecto cadena» y árboles muy desequilibrados.
+- **Promedio** (*average*): media de todas las distancias entre pares de puntos de los dos grupos.
+- **Centroide** (*centroid*): distancia entre los centroides de los grupos (puede producir inversiones en el dendograma).
+
+```{r}
+
+hclust.complete <- hclust(d, method = "complete")
+hclust.average  <- hclust(d, method = "average")
+hclust.single   <- hclust(d, method = "single")
+
+par(mfrow = c(1, 3))
+plot(hclust.complete, labels = FALSE, hang = -1, main = "Completo", xlab = "", sub = "")
+plot(hclust.average,  labels = FALSE, hang = -1, main = "Promedio", xlab = "", sub = "")
+plot(hclust.single,   labels = FALSE, hang = -1, main = "Simple",   xlab = "", sub = "")
+par(mfrow = c(1, 1))
+
+# Agrupamientos resultantes con k = 3
+par(mfrow = c(1, 3))
+plot(puntos, col = cutree(hclust.complete, k = 3), main = "Completo", xlab = "", ylab = "")
+plot(puntos, col = cutree(hclust.average,  k = 3), main = "Promedio", xlab = "", ylab = "")
+plot(puntos, col = cutree(hclust.single,   k = 3), main = "Simple",   xlab = "", ylab = "")
+par(mfrow = c(1, 1))
+
+table(Completo = cutree(hclust.complete, k = 3), Simple = cutree(hclust.single, k = 3))
+
+```
+
+Con k = 3, solo el enlace **completo** produce grupos equilibrados (84, 66 y 150 puntos). En estos datos, el enlace **promedio** se comporta de forma parecida al **simple**: ambos forman dos grupos grandes y un tercero con solo 1 o 2 puntos aislados (150/148/2 con promedio y 150/149/1 con simple). En el simple se debe al «efecto cadena», que va uniendo puntos cercanos uno tras otro y deja los valores atípicos como grupos sueltos.
+
+Por finalizar, veamos algunas consideraciones adicionales con este ejemplo.
+
+- El problema del escalado
+
+Tanto k-means como el clustering jerárquico se basan en distancias, por lo que las variables con mayor rango o varianza dominan el cálculo. En este conjunto la desviación típica de `V1` (≈ 3,5) es casi tres veces la de `V2` (≈ 1,3), de modo que `V1` pesa mucho más en la distancia. Para evitarlo se estandarizan las variables (media 0 y desviación típica 1) con `scale`.
+
+```{r}
+
+# Medias y desviaciones típicas de las variables originales
+colMeans(puntos)
+apply(puntos, 2, sd)
+
+# Estandarización
+puntos.scaled <- scale(puntos)
+colMeans(puntos.scaled)
+apply(puntos.scaled, 2, sd)
+
+# Clustering jerárquico sobre los datos escalados
+hclust.scaled <- hclust(dist(puntos.scaled), method = "complete")
+plot(hclust.scaled, labels = FALSE, hang = -1,
+     main = "Dendograma con datos escalados", xlab = "", sub = "")
+
+# Comparación de agrupamientos con y sin escalado
+table(Original = cutree(hclust.out, k = 3), Escalado = cutree(hclust.scaled, k = 3))
+
+par(mfrow = c(1, 2))
+plot(puntos, col = cutree(hclust.out,    k = 3), main = "Sin escalar", xlab = "", ylab = "")
+plot(puntos, col = cutree(hclust.scaled, k = 3), main = "Escalado",    xlab = "", ylab = "")
+par(mfrow = c(1, 1))
+
+```
+
+La tabla está lejos de ser diagonal (incluso permutando etiquetas): el escalado **cambia mucho las asignaciones**. Al estandarizar, ambas variables pasan a pesar lo mismo en la distancia, de modo que `V2`, que antes apenas influía por su menor desviación típica, cobra importancia en la formación de los grupos. Por eso conviene escalar las variables antes de aplicar métodos basados en distancias cuando están en escalas distintas.
+
+- Comparacion entre el k-Means y el Hierarchical clustering
+
+```{r}
+
+set.seed(1234)
+km.3 <- kmeans(puntos, centers = 3, nstart = 20)
+hc.3 <- cutree(hclust.out, k = 3)
+
+# Tabla de contingencia entre ambos agrupamientos
+table(kmeans = km.3$cluster, jerarquico = hc.3)
+
+par(mfrow = c(1, 2))
+plot(puntos, col = km.3$cluster, main = "k-means (k = 3)",            xlab = "", ylab = "")
+plot(puntos, col = hc.3,         main = "Jerárquico completo (k = 3)", xlab = "", ylab = "")
+par(mfrow = c(1, 1))
+
+```
+
+Las etiquetas de los clústeres son arbitrarias, por lo que la comparación debe hacerse buscando la correspondencia entre filas y columnas de la tabla. En este caso ambos métodos **coinciden en un grupo de 150 puntos**, pero dividen de forma distinta los 150 restantes: k-means los reparte en 98 y 52, y el jerárquico en 84 y 66, con unos 24 puntos asignados de forma diferente (los situados en la frontera entre esos dos grupos). En general:
+
+- **k-means** es muy rápido y escala bien a conjuntos grandes, pero requiere fijar *k* de antemano, depende de la inicialización aleatoria (de ahí `nstart`) y favorece clústeres esféricos de tamaño similar.
+- **Clustering jerárquico** no exige fijar *k* al principio (se elige al cortar el dendograma, que además permite visualizar la estructura de los datos), es determinista, pero es más costoso computacionalmente (requiere la matriz de distancias completa) y el resultado depende del tipo de enlace elegido.

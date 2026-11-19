@@ -1,0 +1,164 @@
+---
+title: "5.ReduccionDimensionalidad"
+author: "Isabel A. Nepomuceno Chamorro"
+date: "2025-11-11"
+output: 
+  html_document:
+    toc: true # Activa la generación del índice
+    toc_depth: 3 # Opcional: Especifica el nivel máximo de encabezados a incluir (h1, h2, h3)
+    toc_float: true # Opcional: Hace que el índice flote a un lado de la página
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Ejercicio PCA
+
+El PCA busca proyectar tus datos sobre un nuevo conjunto de ejes (los componentes principales) que capturen la mayor cantidad de varianza posible.
+
+Aquí vamos a realizar un ejercicio completo usando el conjunto de datos integrado USArrests (arrestos por asalto, asesinato y violación en 50 estados de EE. UU.). Vamos a realizar los tres pasos clave: cálculo, visualización y extracción de resultados.
+
+## Paso 1: Cargar datos y realizar el PCA
+
+En R, la función clave es prcomp() (o princomp()), aunque usaremos prcomp() por ser la más moderna y robusta. Es crucial escalar los datos antes de aplicar PCA, ya que variables con escalas muy diferentes (ej. altura en cm y peso en kg) podrían falsear el análisis.
+
+```{r cars}
+# 1. Cargar el paquete necesario para visualización
+# Si no lo tienes, primero install.packages("factoextra")
+install.packages("factoextra")
+library(factoextra)
+
+# 2. Cargar el conjunto de datos de ejemplo (USArrests)
+data("USArrests")
+
+# 3. Escalar los datos (centrar y escalar) y aplicar PCA
+# La opción scale = TRUE es VITAL aquí para estandarizar las variables
+pca_resultado <- prcomp(USArrests, scale = TRUE)
+
+# 4. Ver un resumen del resultado
+summary(pca_resultado)
+```
+
+La tabla de resumen te muestra cuánta varianza es explicada por cada componente. Buscamos los componentes que acumulen la mayor parte de la varianza total (ej. 80-90%). En este caso PC1 explica un 62,0 % y PC2 un 24,7 %, de modo que **las dos primeras componentes acumulan un 86,75 %**: con 2 componentes es suficiente.
+
+## Paso 2: Visualizar la Varianza y Elegir el Número de Componentes
+
+```{r}
+# 1. Visualizar el Scree Plot (Gráfico de Sedimento)
+# Muestra la varianza explicada por cada componente.
+fviz_eig(pca_resultado, addlabels = TRUE, ylim = c(0, 70))  # PC1 explica un 62 %: con ylim = c(0, 50) su barra quedaría fuera
+
+# Interpretación: Buscamos el "codo" (donde la pendiente se aplana).
+# Generalmente, los componentes antes del codo son los que se seleccionan.
+```
+
+## Paso 3: Visualizar los Resultados del PCA (Biplot)
+
+El Biplot es la joya de la corona del PCA . Muestra:
+
+- Las Observaciones (los estados): Como puntos.
+
+- Las Variables (los delitos): Como vectores.
+
+Muestra la relación entre variables y dónde se agrupan las observaciones.
+
+```{r}
+# 1. Visualizar el Biplot
+# Muestra la proyección de las observaciones y las variables en el plano principal (PC1 y PC2)
+fviz_pca_biplot(
+  pca_resultado,
+  repel = TRUE, # Evita que los textos se superpongan
+  col.var = "blue", # Color para las variables (vectores)
+  col.ind = "black", # Color para las observaciones (puntos/estados)
+  title = "Biplot PCA de Delitos en EE. UU."
+)
+```
+
+Interpretación del Biplot:
+
+- Vectores largos: indican variables bien representadas en el plano PC1-PC2. Como los datos están escalados, todas las variables tienen varianza 1; la longitud no mide su varianza, sino cuánta de ella recogen las dos primeras componentes.
+
+- Vectores cercanos (ángulo pequeño): las variables están positivamente correlacionadas. En este ejemplo, los más alineados son Murder y Assault (unos 20°, correlación 0,80), por lo que miden un fenómeno similar (violencia). Rape también apunta en una dirección parecida, aunque algo más separada (35° respecto a Assault, correlación 0,67).
+
+- Ángulo cercano a 90°: las variables están poco correlacionadas. UrbanPop y Murder forman un ángulo amplio (unos 110° en el plano) y su correlación es prácticamente nula (0,07), lo que indica poca relación directa entre ambas.
+
+- Posición de los puntos: los estados situados en la dirección de un vector tienen valores altos en esa variable. Como en este análisis todas las cargas de PC1 son negativas, los vectores de los delitos apuntan hacia la izquierda: estados como Florida, Nevada o Georgia (PC1 negativa) tienen altos índices de delitos violentos, y Mississippi, abajo a la izquierda, combina asesinatos elevados con baja población urbana.
+
+# 2. Extracción de Resultados (Opcional pero Útil)
+
+Puedes acceder directamente a las coordenadas y contribuciones:
+
+```{r}
+# Las cargas (loadings) de las variables en cada componente
+# ¿Qué variables definen mejor cada componente?
+head(pca_resultado$rotation)
+
+# Las coordenadas de las observaciones (los nuevos datos reducidos)
+# Aquí están los datos originales proyectados en el nuevo espacio (PC1, PC2, etc.)
+head(pca_resultado$x)
+```
+
+Este proceso te permite pasar de tener un set de variables correlacionadas (Assault, Rape, Murder, UrbanPop) a un set más pequeño de variables incorreladas (PC1, PC2, etc.) que puedes usar en modelos de regresión o en otros análisis de clustering.
+
+## Clustering K-Means sobre los Componentes Principales
+
+Usaremos las coordenadas de los estados en el espacio de los componentes principales (PC1 y PC2) como entrada para K-Means.
+
+```{r}
+# Primero, asegurémonos de que tienes el objeto 'pca_resultado' de la sesión anterior.
+# Si no lo tienes, recrea el PCA rápidamente:
+data("USArrests")
+pca_resultado <- prcomp(USArrests, scale = TRUE)
+
+# 1. Extraer las coordenadas de los estados en los Componentes Principales
+# Usaremos las dos primeras PCs (PC1 y PC2) que capturan la mayor varianza.
+datos_pca <- as.data.frame(pca_resultado$x)
+datos_clustering <- datos_pca[, 1:2] 
+
+# 2. Aplicar el algoritmo K-Means con K=4
+# Fijamos una semilla para que los resultados sean reproducibles.
+set.seed(42) 
+kmeans_resultado <- kmeans(datos_clustering, centers = 4, nstart = 25)
+
+# 3. Añadir la asignación de cluster al dataset original de PCA
+datos_clustering$Cluster <- factor(kmeans_resultado$cluster)
+```
+
+# Visualización y Análisis del Resultado
+
+Ahora, visualizaremos los clusters formados en el plano PCA (PC1 vs. PC2).
+
+```{r}
+# 1. Instalar y cargar el paquete ggplot2 para gráficos bonitos (si no lo tienes)
+# install.packages("ggplot2")
+library(ggplot2)
+
+# 2. Crear la gráfica de los clusters
+ggplot(datos_clustering, aes(x = PC1, y = PC2, color = Cluster, label = rownames(datos_clustering))) +
+  geom_point(size = 3) + # Muestra los puntos
+  geom_text(vjust = -1, hjust = 0.5, size = 3) + # Etiqueta los estados
+  stat_ellipse(aes(group = Cluster), type = "norm", level = 0.68) + # Añade elipses de confianza
+  labs(
+    title = "Clusters de Estados Basados en Componentes Principales de Delitos",
+    x = paste0("PC1 (", round(summary(pca_resultado)$importance[2, 1] * 100), "% de Varianza)"),
+    y = paste0("PC2 (", round(summary(pca_resultado)$importance[2, 2] * 100), "% de Varianza)")
+  ) +
+  theme_minimal()
+```
+
+Interpretación de los Clusters (K=4) Al observar el gráfico (que R te generará ), podemos hacer una interpretación basada en los ejes del PCA:
+
+PC1 (Eje Horizontal): Está dominado por los delitos violentos (Murder, Assault, Rape). Como sus cargas son negativas, los estados a la **izquierda** (PC1 negativa, por ejemplo Florida o Nevada) tienen tasas de violencia altas, y los de la **derecha** (por ejemplo North Dakota o Vermont) tienen tasas bajas.
+
+PC2 (Eje Vertical): Está dominado por la población urbana (UrbanPop, carga positiva). Los estados en la parte superior son más urbanos.
+
+Nota: el signo de una componente principal es arbitrario (otra versión del software podría invertirlo). Para interpretar cada eje hay que mirar siempre el signo de las cargas en `pca_resultado$rotation`.
+
+Este ejercicio demuestra cómo el PCA prepara los datos para que el K-Means pueda encontrar grupos bien definidos y, sobre todo, interpretable en términos de tus variables originales.
+
+%You can also embed plots, for example:
+
+\%`{r pressure, echo=FALSE} %#plot(pressure) %#`
+
+%Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

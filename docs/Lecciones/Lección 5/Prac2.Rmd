@@ -1,0 +1,498 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+    toc: true # Activa la generación del índice
+    toc_depth: 3 # Opcional: Especifica el nivel máximo de encabezados a incluir (h1, h2, h3)
+    toc_float: true # Opcional: Hace que el índice flote a un lado de la página
+---
+
+# CARET
+
+Seguimos con Caret. En la práctica anterior hemos visto como crear varios modelos predictivos y cómo realizar una comparación justa entre ellos. En esta práctica vamos a trabajar un poco más con el preprocesamiento de datos:
+
+- Empezaremos con la exploración de los datos en bruto (raw data)
+
+- Una exploración preliminar de los mismos
+
+- Preprocesamiento
+
+Una vez finalizada esta parte entrenaremos y ajustaremos (training and tuning) de un modelo, lo evaluaremos y lo ajustaremos teniendo en cuenta que es un problema con desbalanceo de clases. Vamos a utilizar el paquete Caret para generar un clasificador utilizando los datos "GermanCredit" del paquete mismo, con el objetivo de predecir la probabilidad de impago en un crédito bancario.
+
+```{r}
+library(caret)
+data(GermanCredit)
+dim(GermanCredit)
+
+
+```
+
+Partimos de los raw data y vamos a generar el dataset con el que vamos a trabajar.
+
+```{r}
+
+library(tidyverse)
+
+# Select variables
+data <- GermanCredit %>%
+  dplyr::select(Class, Duration, Amount, Age, ResidenceDuration,NumberExistingCredits,
+                NumberPeopleMaintenance, Telephone, ForeignWorker, Housing.Rent,
+                Housing.Own, Housing.ForFree, Property.RealEstate,
+                Property.Insurance, Property.CarOther, Property.Unknown)
+
+data <- data %>%
+  dplyr::rename("EmploymentDuration" = "Duration")
+
+dim(data)
+```
+
+Este dataset como viene del paquete caret está bien construido. Vamos a añadir ruido y missing values:
+
+```{r}
+# Simulamos missing data para variables Age y Employment Duration
+n <- nrow(data)
+agePct <- 3
+durationPct <- 7
+
+# Generate filas que contendrán los datos que faltan
+set.seed(355)
+# Sample toma una muestra del tamaño especificado en el 2º argumento
+# round te redondea, 0 es el número de decimales
+ageMissingPctRows <- sample(1:n, round(agePct/100 * n, 0))
+
+set.seed(355)
+#Generamos número de filas que contengan los valores ausentes
+durationMissingPctRows <- sample(1:n, round(durationPct/100 * n, 0))
+
+# Convertir en NA's
+data[ageMissingPctRows, "Age"] <- NA
+data[durationMissingPctRows, "EmploymentDuration"] <- NA
+
+# Codifica ciertas variables como factor
+data <- data %>%
+  mutate(across(.cols = c("ResidenceDuration",
+                          "NumberExistingCredits",    
+                          "NumberPeopleMaintenance", 
+                          "Telephone",              
+                          "ForeignWorker"), .fns = factor))
+```
+
+Le damos un vistazo al dataset generado:
+
+```{r}
+summary(data)
+```
+
+```{r}
+str(data)
+```
+
+Podemos observar que "Clase" es nuestra variable de respuesta, y tiene un equilibrio de clase de 70/30. Ahora tenemos una distribución de valores perdidos para las variables Duración del empleo y Edad que trataremos más adelante, pero el resto de nuestras variables predictoras son factores. Observe que están codificadas de diferentes maneras. Por ejemplo, "Teléfono" y "Trabajador extranjero" se codifican como variables 0 frente a 1, pero la variable "Vivienda" se divide en tres componentes: "Vivienda.Alquiler", "Vivienda.Propia" y "Vivienda.Gratuita". Lo trataremos durante el proceso de preprocesamiento.
+
+# Visualización de la distribución de características por clase
+
+Caret nos proporciona la función featurePlot(), que puede ayudar a producir gráficos de boxplot, es decir, a observar la distribución de los predictores por la variable de clase cuando tenemos variables continuas. Veamos los siguientes ejemplos:
+
+```{r}
+# x es la matrix de características e y es la clase
+featurePlot(x = data[,c("EmploymentDuration", "Age")],
+            y = data$Class,
+            plot = "box")
+
+```
+
+Info sobre los gráficos de box plot:
+
+<https://es.wikipedia.org/wiki/Diagrama_de_caja>
+
+La función densidad:
+
+```{r}
+featurePlot(x = data[,c("EmploymentDuration", "Age")],
+            y = data$Class,
+            plot = "density")
+```
+
+Info sobre la función densidad en: <https://es.wikipedia.org/wiki/Funci%C3%B3n_de_densidad_de_probabilidad>
+
+describe la probabilidad relativa según la cual dicha variable aleatoria tomará determinado valor.
+
+En el caso de la propiedad, que se codifica numéricamente podemos hacer un procedimiento similar:
+
+```{r}
+# Sacamos las columnas de la 13 a la 16, 4 en total
+featurePlot(x = data[,13:16],
+            y = data$Class,
+            plot = "density")
+
+```
+
+Otra función muy útil es nearZeroVar(), que puede identificar las variables que tienen un valor único:
+
+```{r}
+# freqCut: el corte de la relación entre el valor más común y el segundo valor más común
+# uniqueCut: el corte para el porcentaje de valores distintos sobre el número de muestras totales
+nearZeroVar(data, freqCut = 95/5, uniqueCut = 10)
+colnames(data)[9]
+```
+
+otras pruebas:
+
+```{r}
+nearZeroVar(data, freqCut = 80/20, uniqueCut = 10)
+colnames(data)[c(7,9,10,12,16)]
+```
+
+Esta función devuelve los índices de las variables que están cerca de la variación cero. En el primer caso obtiene ForeignWorker, y si relajamos los parámetros de entrada se obtienen las columnas 10, 12, 16 que son Vivienda y Propiedad. Debería también obtener la variable NumberExistingCredits pero no la obtiene debido a la forma en la que está codificada. En cualquier caso, eliminaremos la variable "ForeignWorker" debido a la relativa falta de variación, y fusionaremos los niveles 2, 3 y 4 de la variable NumberExistingCredits para codificar si tiene o tiene dos o más.
+
+```{r}
+data <- dplyr::select(data, -ForeignWorker)
+
+data$NumberExistingCredits <- fct_collapse(data$NumberExistingCredits,
+                  "2+" = c("2", "3", "4"))
+```
+
+# Preprocesamiento: imputación de valores perdidos, codificación one-hot y normalización.
+
+Pasemos a otras funciones de preprocesamiento. En primer lugar dividir nuestros datos en dos partes: conjunto de entrenamiento y conjunto de test. Para ello Caret nos proporciona la función createDataPartition(), que nos permitirá realizar la partición en función de la proporción de la variable respuesta.
+
+```{r}
+set.seed(355)
+trainIndex <- createDataPartition(data$Class, p = 0.7, list = FALSE)
+trainingSet <- data[trainIndex,]
+testSet <- data[-trainIndex,]
+
+summary(trainingSet)
+```
+
+En Caret, la función preProcess() permite realizar distintos preprocesamiento como por ejemplo imputar los valores faltantes. Tiene el argumento "method", que tiene muchas opciones diferentes para el procesamiento. Para la imputación, las opciones son "knnImpute", "bagImpute" o "medianImpute". Vamos a utilizar "bagImpute" en el conjunto de entrenamiento.
+
+```{r}
+set.seed(355)
+# con este valor utilizaremos varios árboles de decisión para hacer la imputación de nuestro valor perdido.
+bagMissing <- preProcess(trainingSet, method = "bagImpute")
+trainingSet <- predict(bagMissing, newdata = trainingSet)
+#help("preProcess")
+```
+
+En esta página tienes un buen resumen de preprocesamiento posible: <https://rubenfcasal.github.io/aprendizaje_estadistico/caret.html>
+
+```{r}
+str(data)
+```
+
+Fíjate en la codificación de vivienda (Housing) y propiedad, que están en el formato perfecto, es decir, numérico y no se indica orden entre "HRent" y "HOwn". Lo que queremos es convertir el resto de variables factores a lo que llamamos "esta codificación que se llama"one hot encoding" o "codificación en caliente". Para ello llamamos a la función dummyVar
+
+```{r}
+
+dummyModel <- dummyVars(Class ~ ., data = trainingSet)
+trainingSetX <- as.data.frame(predict(dummyModel, newdata = trainingSet))
+
+str(trainingSetX)
+
+```
+
+Lo siguiente que haremos será transformar estas variables para que estén entre 0 y 1. En el caso de que todas las variables predictoras sean continuas lo que hacemos es estandarizar mediante una combinación de "centro" y "escala" en el argumento "método". Sin embargo, si se especifica "método = 'rango'", las variables se transformarán en una escala de 0 a 1.
+
+```{r}
+rangeModel <- preProcess(trainingSetX, method = "range")
+trainingSetX <- predict(rangeModel, newdata = trainingSetX)
+str(trainingSetX)
+```
+
+Fijaros que el nuevo dataset preprocesado no tiene la clase, hay que añadirla la variable respuesta:
+
+```{r}
+trainingSet <- cbind(trainingSet$Class, trainingSetX)
+names(trainingSet)[1] <- "Class"
+```
+
+Ten en cuenta que este mismo preprocesamiento hay que aplicarlo al conjunto de test:
+
+```{r}
+testSet_imputed <- predict(bagMissing, testSet)
+testSet_dummy <- predict(dummyModel, testSet_imputed)
+testSet_range <- predict(rangeModel, testSet_dummy)
+testSet_range <- data.frame(testSet_range)
+testSet <- cbind(testSet$Class, testSet_range)
+names(testSet) <- names(trainingSet)   # proactive step that can prevent errors later
+
+```
+
+# Eliminando variables de poca información
+
+Lo siguiente que debemos tener en cuenta son las características con poca información. Si se incluyen características inútiles y poco informativas en el conjunto de datos, casi siempre se producirá una disminución del rendimiento del modelo. Personalmente, me gusta dejar que el conocimiento del dominio se encargue de esta parte. Sin embargo, otra opción es la eliminación recursiva de características. La función para implementarla es la función rfe(), con un control definido por la función rfeControl().
+
+La Eliminación Recursiva de Características funciona construyendo muchos modelos de un tipo de método de aprendizaje automático sobre el conjunto de entrenamiento, y recalculando iterativamente las variables más importantes. Al final, se puede informar de las variables que se consideraron importantes con mayor frecuencia, a través de diferentes tamaños de subconjuntos. Más adelante veremos un ejemplo de gráfico de importancia de variables; muchos algoritmos ofrecen métodos para clasificar las características de mayor a menor importancia. El método que se utilizará en nuestro enfoque de Eliminación Recursiva de Características será el Bosque Aleatorio, y los tamaños de los subconjuntos (es decir, el número de características más importantes a utilizar) se proporcionan explícitamente.
+
+```{r}
+
+#install.packages("randomForest")
+library(randomForest)
+
+subsets <- c(1:5, 10, 15, 20)
+
+set.seed(355)
+
+rfeCtrl <- rfeControl(functions = rfFuncs,
+                      method = "cv",
+                      verbose = FALSE)
+
+rfProfile <- rfe(x = trainingSet[,2:21], 
+                y = trainingSet$Class, 
+                sizes = subsets,
+                rfeControl = rfeCtrl)
+
+rfProfile
+```
+
+En el ejercicio no la vamos a eliminar, pero basándonos en esto podríamos eliminar el resto de característicasy ver si mejoran los resultados-
+
+# Visualización de importancia de las variables
+
+A continuación, utilizaremos la función train() para ajustar los modelos reales, y más tarde entraremos a examinar el rendimiento. La función train() es una función increíblemente potente, que toma un objeto de control que controla el ajuste de los hiperparámetros, la validación cruzada del modelo y la selección de un modelo óptimo.
+
+Para tener una idea del alcance completo de los modelos que pueden ser entrenados en "caret", vea la siguiente lista:
+
+```{r}
+names(getModelInfo())
+```
+
+Como se puede ver, hay numerosas opciones. Sin embargo, hay que tener en cuenta que ciertos paquetes, encima de "caret", deben ser instalados y llamados al principio para poder utilizarlos. Empezaremos entrenando un clasificador Random Forest en nuestro conjunto de entrenamiento y veremos lo que podemos hacer con él. Tenga en cuenta que no estamos estableciendo los controles para la función train() - lo hará automáticamente. Volveremos más tarde para hacerlo.
+
+```{r}
+set.seed(355)
+rf <- train(Class ~., data = trainingSet, method = "rf")
+rf
+```
+
+Esta técnica hace un ranking de variables con los árboles que genera y se puede extraer la importancia de las variables:
+
+```{r}
+varimp_RF <- varImp(rf)
+plot(varimp_RF, main = "German Credit Variable Importance (Random Forest)")
+
+```
+
+Hay que tener en cuenta que los random forest tienden a dar mucha más importancia a las variables continuas sobre las categóricas, por eso da tanta importancia a la variable amount sobre el resto.
+
+# Métricas para ver el rendimiento en clasificadores
+
+Utilicemos ahora el modelo de random forest para predecir en nuestros datos de prueba. La función predict() aquí, por defecto, devolverá predicciones de respuesta (es decir, un vector de "buenos" y "malos").
+
+```{r}
+fitted <- predict(rf, testSet)
+fitted[1:10]
+```
+
+Creamos la matrix de confusión para ver el rendimiento del modelo:
+
+```{r}
+confusionMatrix(reference = testSet$Class, data = fitted, mode = "everything", positive = "Good")
+```
+
+Fijaros en la salida de la función train y comentamos algunos valores:
+
+- Sensibilidad: número de veces que una clase de crédito era "buena", ¿con qué frecuencia el modelo las identificó correctamente? Este término también se conoce como "recall".
+
+- Especificidad: número de veces que una clase de crédito era "mala", ¿con qué frecuencia la identificó correctamente el modelo?
+
+- valor predictivo positivo: El valor predictivo positivo representa, de la frecuencia con la que el modelo identificó a los sujetos con una clase de crédito "buena", cuántos tenían realmente una clase de crédito "buena". Esto también se conoce como "precisión".
+
+Como se puede ver aquí, el modelo tiene una sensibilidad y un valor predictivo positivo razonables, pero una especificidad muy baja. Por ello vamos a ajustar los hiperparámetros en lugar de pasarlos directamente a la función train().
+
+La función train() nos permite pasarle un objeto control con el ajuste de los hiperparámetros. Hay dos maneras de hacer esto: a través de lo que se conoce como tuning length , o a través de una rejilla o tuning grid. Para la primera opción se utiliza el argumento "tuneLength", representa el número de valores únicos entre los que la función "train" elegirá automáticamente mientras el modelo se entrena. "tuneGrid" permite al usuario especificar qué valores para los hiperparámetros quiere.
+
+```{r}
+twoClassCtrl <- trainControl(
+  method = "repeatedcv",
+  number = 5,
+  repeats = 5,
+  savePredictions = "final",
+  classProbs = T,
+  summaryFunction = twoClassSummary
+)
+
+set.seed(355)
+rfTL <- train(Class ~., data = trainingSet, method = "rf", metric = "ROC", trControl = twoClassCtrl, tuneLength = 10)
+
+rfTL
+
+fittedTL <- predict(rfTL, testSet)
+confusionMatrix(reference = testSet$Class, data = fittedTL, mode = "everything", positive = "Good")
+
+
+```
+
+Observa que el argumento "summaryFunction" de trCtrl lo hemos utilizado. Se puede especificar para optimizar el equilibrio entre la sensibilidad y la especificidad indicando "twoClassSummary" como función de resumen. Alternativamente, se puede optimizar a través de la compensación entre Recall y Precision (es decir, Sensibilidad y Valor Predictivo Positivo) especificando "prSummary" como función de resumen. Qué elegir mejor...depende del problema. Si el conjunto es muy desbalanceado es preferible el compromiso Precisión/Recalificación que el de Sensibilidad/Especificidad. Este caso en particular está en el límite porque el desequilibrio de clases es de 70/30 que es bastante pero no desproporcionado. Por ello mantenemos twoClassSummary.
+
+Si miras la salida de la matriz de confusión se observa ahora que está un poco más equilibrado pero no demasiado. VAmos a utilizar tuneGrid para observar qué ocurre, pero antes demos un vistazo al modelo por si hay más parámetros que el mtry:
+
+```{r}
+print(modelLookup("rf"))
+```
+
+Y vemos que no hay ninguno más:
+
+```{r}
+rfGrid <- data.frame(mtry = c(3, 5, 7, 9, 10, 11, 12, 13, 15, 17, 19))  # tuneGrid requires a data frame input
+
+set.seed(355)
+rfTG <- train(Class ~., data = trainingSet, method = "rf", metric = "ROC", trControl = twoClassCtrl, tuneGrid = rfGrid)
+
+rfTG
+
+fittedTG <- predict(rfTG, testSet)
+confusionMatrix(reference = testSet$Class, data = fittedTG, mode = "everything", positive = "Good")
+```
+
+# Utilizamos métodos de muestreo no estándar para corregir el desequilibrio de clases
+
+Hemos conseguido mejorar algo el modelo pero no demasiado, por ello vamos a tener en cuenta el problema del desbalanceo de clase. Para ello tenemos en cuenta el método de muestreo. Las dos técnicas principales para hacerlo son el "down-sampling" y el "up-sampling", aunque "caret" ofrece un par de enfoques híbridos. Estos enfoques se denominan "SMOTE" y "ROSE", y requieren la instalación de los paquetes "DMwR" y "ROSE", respectivamente.
+
+- down-sampling o Muestreo descendente: En este enfoque, submuestreamos a propósito la clase mayoritaria. En el ejemplo en el que el 70% de las filas son de riesgo crediticio "Bueno" y el 30% son de riesgo crediticio "Malo", tomamos una muestra del conjunto de entrenamiento de manera que las dos clases tengan la misma frecuencia (en efecto, utilizaríamos sólo el 60% del conjunto de entrenamiento).
+
+- up-sampling o Muestreo ascendente: En este enfoque, se realiza un sobremuestreo de la clase minoritaria de forma que se tenga el mismo número de filas de las dos clases.
+
+El método de muestreo puede especificarse en el control, así que vamos a probarlo a continuación.
+
+```{r}
+downCtrl <- trainControl(
+  method = "boot",
+  number = 5,
+  savePredictions = "final",
+  classProbs = T,
+  summaryFunction = twoClassSummary,
+  sampling = "down"
+)
+
+upCtrl <- trainControl(
+  method = "boot",
+  number = 5,
+  savePredictions = "final",
+  classProbs = T,
+  summaryFunction = twoClassSummary,
+  sampling = "up"
+)
+```
+
+Ahora trataremos de observar de nuevo el rendimiento del modelo (para el caso de entrenamiento con muestreo reducido/descendente o down-sampling):
+
+```{r}
+set.seed(355)
+rfDown <- train(Class ~., data = trainingSet, method = "rf", metric = "ROC", trControl = downCtrl, tuneLength = 10)
+
+rfDown
+
+fittedDown <- predict(rfDown, testSet)
+confusionMatrix(reference = testSet$Class, data = fittedDown, mode = "everything", positive = "Good")
+```
+
+A continuación, veamos el rendimiento del modelo para el caso de entrenamiento con muestreo ascendente:
+
+```{r}
+set.seed(355)
+rfUp <- train(Class ~., data = trainingSet, method = "rf", metric = "ROC", trControl = upCtrl, tuneLength = 10)
+
+rfUp
+
+fittedUp <- predict(rfUp, testSet)
+confusionMatrix(reference = testSet$Class, data = fittedUp, mode = "everything", positive = "Good")
+```
+
+# Alterar los límites de los umbrales del clasificador
+
+Un enfoque para atacar el problema del desequilibrio de clases es, cuando utilizamos la función predict(), cambiarlas por probabilidades. Por ejemplo, si el algoritmo asigna una probabilidad del 33% o más de que una observación caiga en la clase negativa, podemos clasificarla como Mala. Dicho de otro modo, le damos la vuelta al clasificador y volvemos a calcular la matriz de confusion.
+
+```{r}
+fittedProb <- predict(rfTL, testSet, type = "prob")
+
+fittedProb <- fittedProb$Bad
+
+fittedProb <- factor(ifelse(fittedProb >= 0.333, "Bad", "Good"))
+
+confusionMatrix(reference = testSet$Class, data = fittedProb, mode = "everything", positive = "Good")
+
+
+```
+
+Aunque este no es el enfoque más preciso que se ha utilizado hasta ahora, es con diferencia el más equilibrado en cuanto a sensibilidad y especificidad. Esto puede considerarse de forma análoga a tratar la clasificación errónea de los malos acreedores como buenos, como un error dos veces más grave que la clasificación errónea de los buenos acreedores como malos; y de hecho, los dos errores que no son igual de malos serán a menudo ciertos cuando hay desequilibrio de clases. Obsérvese que esta evaluación (es decir, que un error sea 2X o 3X tan malo como el otro tipo) debe ser informada SIEMPRE principalmente por el conocimiento del dominio subyacente.
+
+# Entrenamiento de múltiples modelos
+
+Nuestra siguiente tarea será evaluar el rendimiento del modelo a través de varios métodos diferentes, en lugar de ceñirnos estrictamente al Bosque Aleatorio. Compararemos el Random Forest con otros dos enfoques: "glmnet" (la red elástica), y "svmRadial" (máquinas de vectores de apoyo con un núcleo radial). Definiremos una lista de métodos que queremos utilizar, y crearemos un conjunto de resultados de entrenamiento utilizando la funcionalidad caretList() del paquete "caretEnsemble".
+
+Pero antes de nada tenemos que especificar el control o protocolo a seguir para un entrenamiento y posterior comparativa justa:
+
+```{r}
+methodCtrl <- trainControl(
+  method = "repeatedcv",
+  number = 5,
+  repeats = 5,
+  savePredictions = "final",
+  classProbs = T,
+  summaryFunction = twoClassSummary
+)
+
+```
+
+Especificamos la lista de modelos y entrenamos el conjunto de modelos:
+
+```{r}
+methodList <- c("rf", "glmnet", "svmRadial")
+
+set.seed(355)
+
+#ensemble <- caretList(Class ~ ., data = trainingSet, 
+#                      metric = "ROC", 
+#                      trControl = methodCtrl, 
+#                      methodList = methodList)
+
+modelo_rf <- train(Class ~ ., data = trainingSet, 
+                      metric = "ROC", 
+                      trControl = methodCtrl, 
+                      method = "rf")
+
+modelo_glmnet <- train(Class ~ ., data = trainingSet, 
+                      metric = "ROC", 
+                      trControl = methodCtrl, 
+                      method = "glmnet")
+
+modelo_svmRadial <- train(Class ~ ., data = trainingSet, 
+                      metric = "ROC", 
+                      trControl = methodCtrl, 
+                      method = "svmRadial")
+
+```
+
+Finalmente comparamos el rendimiento de los modelos utilizando la función resample:
+
+```{r}
+#resampledList <- resamples(ensemble)
+resam <- resamples(list(RF = modelo_rf,
+                        GLMNET = modelo_glmnet,
+                        SVM = modelo_svmRadial))
+
+summary(resam)
+```
+
+Dado que el Bosque Aleatorio supera a los otros métodos, desde el punto de vista del ROC, es probablemente el enfoque preferido de estos tres.
+
+Este tutorial es muy completo y comlejo, tenga como regla general que pensar una solución de do días más o menos es el resultado mínimo para empezar
+
+# Fuentes:
+
+[1] GitHub documentation from Max Kuhn: <https://topepo.github.io/caret/>
+
+[2] Tutorial by Selva Prabhakaran: <https://www.machinelearningplus.com/machine-learning/caret-package/>
+
+[3] Tutorial on "caret" with class imbalances: <https://shiring.github.io/machine_learning/2017/04/02/unbalanced>
+
+[4] Tutorial Machine Learning with Caret: <https://rstudio-pubs-static.s3.amazonaws.com/867468_4fc8916a0b2f4732b2a04fd20c7b5b70.html>
+
+ENLACSE INTERESANTES: <https://www.cienciadedatos.net/documentos/41_machine_learning_con_r_y_caret#>
+
+<https://www.rebeccabarter.com/blog/2017-11-17-caret_tutorial/>
+
+<https://towardsdatascience.com/a-guide-to-using-caret-in-r-71dec0bda208>

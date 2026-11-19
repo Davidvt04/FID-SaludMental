@@ -1,0 +1,458 @@
+---
+title: "*Clustering*: 2ª parte (resuelto)"
+output: html_notebook
+---
+
+### Breast Cancer Wisconsin (Diagnostic) Data Set
+
+Vamos a trabajar con datos sobre un estudio realizado con datos sobre cáncer de mama. Entramos en el enlace de Kaggle: <https://www.kaggle.com/uciml/breast-cancer-wisconsin-data> y leemos con detenimiento toda la información acerca de este *dataset*. Los datos originales están tomados de la UCI Repository: <https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+%28Diagnostic%29>
+
+#### Exploración inicial
+
+En primer lugar leemos la información sobre estos datos disponible en Kaggle: ¿qué tipo de estudio es?, ¿cómo se obtuvieron los datos?, ¿en qué características relevantes debemos fijarnos? En segundo lugar, importamos los datos y los estudiamos. ¿Cuántas variables o columnas del conjunto de datos son de tipo numérico? ¿Cuáles son sus nombres? ¿Hay alguna que tenga una etiqueta del tipo "enferma vs. no-enferma"?
+
+**Respuesta.**
+
+- **Tipo de estudio:** es un estudio diagnóstico. Cada fila corresponde a una paciente (569 en total) a la que se le ha realizado una punción aspiración con aguja fina (PAAF) de una masa mamaria.
+- **Obtención de los datos:** las variables se calculan a partir de una imagen digitalizada de la muestra y describen los núcleos celulares presentes en ella. Para cada una de las 10 características del núcleo (radio, textura, perímetro, área, suavidad, compacidad, concavidad, puntos cóncavos, simetría y dimensión fractal) se calculan la media (`_mean`), el error estándar (`_se`) y el valor «peor», es decir, la media de los tres valores más altos (`_worst`). Esto da 30 variables.
+- **Variables numéricas:** son numéricas `id` y las 30 variables morfológicas citadas. La última columna (`X` en R) está vacía (todo `NA`) y no aporta información.
+- **Etiqueta:** la variable `diagnosis` indica el diagnóstico: `M` (maligno, «enferma») o `B` (benigno, «no enferma»).
+
+Leemos los datos y observamos la estructura del dataframe.
+
+```{r warning=FALSE}
+
+# Al descomprimir data.zip el fichero queda en "data/data/"; se admiten ambas rutas.
+ruta <- if (file.exists("data/WisconsinCancer.csv")) "data/WisconsinCancer.csv" else "data/data/WisconsinCancer.csv"
+
+wisc.df <- read.csv(ruta)
+str(wisc.df)
+
+```
+
+Le echamos un vistazo a los datos.
+
+```{r warning=FALSE}
+
+head(wisc.df)
+dim(wisc.df)          # 569 filas y 33 columnas
+names(wisc.df)
+table(wisc.df$diagnosis)
+summary(wisc.df$X)    # la última columna es completamente NA
+
+```
+
+Para hacer un análisis de clustering nos quedamos solo con la parte numérica. Es decir, construimos una matriz con las variables con valores numéricos. Es decir, todas las columnas menos la primera columna, el *id* y la segunda *diagnosis*. No consideramos tampoco la última columna que no aporta información. Nombre con la información de los *id* a las filas de dicha matriz.
+
+```{r warning=FALSE}
+
+wisc.data <- as.matrix(wisc.df[, 3:32])   # 30 variables numéricas
+row.names(wisc.data) <- wisc.df$id
+
+dim(wisc.data)
+head(wisc.data[, 1:6])
+
+```
+
+¿Están todos los datos en el mismo rango de valores? Si no fuera así, debemos escalarlos o poner todas las variables en el mismo rango de valores.
+
+Nota: en general se debe estudiar la media y la desviación para ver si se debe normalizar o no los datos: *colMeans(wisc_data)* y *apply(wisc_data,2,sd)*
+
+```{r warning=FALSE}
+
+round(colMeans(wisc.data), 3)
+round(apply(wisc.data, 2, sd), 3)
+
+```
+
+Las escalas son muy distintas: por ejemplo, `area_mean` tiene una media de unos 655 y una desviación típica de unos 352, mientras que `smoothness_mean` tiene una media de unos 0,10 y una desviación típica de unos 0,014. Sin escalar, las variables de área y perímetro dominarían por completo cualquier cálculo de distancias.
+
+Observamos que no es así, por lo que los escalamos.
+
+```{r warning=FALSE}
+
+wisc.data.scaled <- scale(wisc.data)
+
+# Comprobación: medias ~ 0 y desviaciones típicas = 1
+round(colMeans(wisc.data.scaled), 3)
+apply(wisc.data.scaled, 2, sd)
+
+```
+
+Antes de continuar nos planteamos si es conveniente reducir el número de variables aplicando una técnica de reducción de la dimensionalidad.
+
+```{r warning=FALSE}
+
+ncol(wisc.data.scaled)   # número de variables
+
+# Correlaciones elevadas entre variables (indicio de redundancia)
+cor.mat <- cor(wisc.data)
+sum(abs(cor.mat[upper.tri(cor.mat)]) > 0.9)   # pares de variables con |r| > 0.9
+round(cor.mat[c("radius_mean", "perimeter_mean", "area_mean"),
+              c("radius_mean", "perimeter_mean", "area_mean")], 3)
+
+```
+
+Los datos tienen 30 variables o atributos. Además, muchas de ellas están muy correlacionadas: radio, perímetro y área miden prácticamente lo mismo. Decidimos, por tanto, reducir la dimensionalidad.
+
+#### Análisis de Componentes Principales o **PCA**
+
+**PCA** o Análisis de Componentes Principales sirve para realizar una trasformación de los datos de tal manera que se trabaje con menos variables y sea más sencillo aplicar los algoritmos. Es una técnica de "reducción de la dimensionalidad". Enlace: <https://bit.ly/145NDZW>
+
+```{r warning=FALSE}
+
+# Los datos ya están escalados; aun así, indicar scale = TRUE no altera el resultado.
+wisc.pr <- prcomp(wisc.data.scaled, center = TRUE, scale = TRUE)
+
+```
+
+Nota: el parámetro "scale" está por defecto a false. En general se suele hacer la llamada poniéndolo a true. En este caso, al haber escalado los datos antes, no sería necesario. (Cuando hemos escalado los datos no sabíamos si íbamos a aplicar o no un PCA).
+
+Aplicamos la función *summary* para ver con cuántos ejes se obtienen con, por ejemplo, un 90% de "variabilidad" de los datos. Observamos el valor de *cumulative proportion*. ¿Con cuántos ejes se consigue un 90% de variablidad?
+
+Nota: el objetivo es tomar un número de componentes del PCA menor que el número original de variables y tal que la variabilidad de los datos, su "cumulative proportion", sea mayor que 0.9.
+
+Un PCA lo que hace es representar los datos en un nuevo sistema de coordenadas de tal forma que los datos se ordenan según su "variabilidad". Eliminamos variables - para trabajar en un espacio métrico más sencillo -, pero de manera que no perdamos demasiada información.
+
+```{r warning=FALSE}
+
+summary(wisc.pr)
+
+# Proporción de varianza explicada y acumulada
+pve <- wisc.pr$sdev^2 / sum(wisc.pr$sdev^2)
+which(cumsum(pve) >= 0.9)[1]   # primer número de componentes que supera el 90 %
+
+par(mfrow = c(1, 2))
+plot(pve, type = "b", pch = 19, ylim = c(0, 1),
+     xlab = "Componente principal", ylab = "Proporción de varianza explicada")
+plot(cumsum(pve), type = "b", pch = 19, ylim = c(0, 1),
+     xlab = "Componente principal", ylab = "Proporción acumulada")
+abline(h = 0.9, col = "red", lty = 2)
+par(mfrow = c(1, 1))
+
+```
+
+La primera componente explica aproximadamente el 44,3 % de la varianza y las dos primeras el 63,2 %. La proporción acumulada supera el 90 % por primera vez con **7 componentes** (≈ 91,0 %).
+
+Observamos que con 7 ejes se consigue un 90% de variabilidad de los datos. Es decir, nos quedamos con las primeras siete componentes.
+
+```{r warning=FALSE}
+
+wisc.pr7 <- wisc.pr$x[, 1:7]
+dim(wisc.pr7)
+head(wisc.pr7)
+
+```
+
+Aunque no sea necesario, visualizamos el resultado del PCA de tal manera que vea la relación de las variables originales.
+
+```{r warning=FALSE}
+
+biplot(wisc.pr, cex = c(0.4, 0.6), xlabs = rep(".", nrow(wisc.data)))
+
+# Cargas (loadings) de las dos primeras componentes
+round(wisc.pr$rotation[, 1:2], 3)
+
+```
+
+El biplot muestra cada observación (como un punto) y cada variable original (como una flecha) sobre el plano PC1-PC2. Todas las variables tienen carga negativa en PC1, que actúa como un indicador global del tamaño y de la irregularidad del núcleo. PC2 contrapone las variables de tamaño (radio, perímetro, área) a las de forma y textura fina (dimensión fractal, suavidad, simetría). Con 569 observaciones y 30 variables el gráfico resulta muy denso; por eso se representan las observaciones con un punto.
+
+Para tratar de entender qué significa hacer un PCA representamos dos a dos algunos ejes. ¿Qué dibujo separa mejor? ¿PC1 vs. PC3? o ¿PC1 vs. PC9?
+
+Representamos los ejes dos a dos. Por ejemplo, PC1 vs. PC2 o PC1 vs. PC9 y observémoslos según la etiqueta. ¿Qué dibujo separa mejor? ¿PC1 vs. PC3? o ¿PC1 vs. PC9?
+
+```{r warning=FALSE}
+
+# Color según el diagnóstico: rojo = maligno (M), negro = benigno (B)
+col.diag <- ifelse(wisc.df$diagnosis == "M", "red", "black")
+
+par(mfrow = c(1, 3))
+plot(wisc.pr$x[, c(1, 2)], col = col.diag, xlab = "PC1", ylab = "PC2", main = "PC1 vs PC2")
+plot(wisc.pr$x[, c(1, 3)], col = col.diag, xlab = "PC1", ylab = "PC3", main = "PC1 vs PC3")
+plot(wisc.pr$x[, c(1, 9)], col = col.diag, xlab = "PC1", ylab = "PC9", main = "PC1 vs PC9")
+par(mfrow = c(1, 1))
+
+```
+
+En los tres gráficos la separación entre benignos y malignos se produce sobre todo a lo largo de **PC1**, que es la componente con mayor varianza. **PC1 vs. PC3 separa mejor** que PC1 vs. PC9: PC3 todavía recoge una parte apreciable de la varianza (≈ 9,4 %) y aporta estructura adicional. En cambio, PC9 apenas explica un 1,4 %: los puntos quedan aplastados en torno a 0 en el eje vertical, y ese eje no aporta información útil para distinguir los grupos. PC1 vs. PC2 es la representación que separa más claramente ambos grupos, ya que combina las dos direcciones de mayor variabilidad.
+
+#### Clustering k-Means
+
+Aplicamos el algoritmo k-Means.
+
+Debemos tener en cuenta la elección del valor de k y elegir un valor de los parámetros de tal manera que se controle la aleatoriedad intrínseca del algoritmo. Además, siempre se deben escalar los datos para ejecutar el algoritmo.
+
+Se trabaja con las 7 componentes principales (obtenidas a partir de los datos escalados), con `nstart = 20` para controlar la aleatoriedad y una semilla fija para que los resultados sean reproducibles.
+
+```{r warning=FALSE}
+
+set.seed(1234)
+wss <- numeric(15)
+for (k in 1:15) {
+  wss[k] <- kmeans(wisc.pr7, centers = k, nstart = 20, iter.max = 50)$tot.withinss
+}
+
+plot(1:15, wss, type = "b", pch = 19,
+     xlab = "Número de clústeres (k)",
+     ylab = "Suma de cuadrados intraclúster (tot.withinss)",
+     main = "Método del codo (7 componentes principales)")
+
+```
+
+Observando la gráfica se puede elegir un valor de k o bien 2, 3 o incluso 4. No está claro del todo. Realizamos ejecuciones para k=2 y k=4.
+
+Aplicamos el algoritmo kMeans para k=2.
+
+```{r warning=FALSE}
+
+set.seed(1234)
+wisc.km2 <- kmeans(wisc.pr7, centers = 2, nstart = 20, iter.max = 50)
+wisc.km2$size
+table(wisc.km2$cluster)
+
+```
+
+Visualizamos el resultado (la gráfica visualiza los dos primeros ejes de los siete que tienen los datos reducidos).
+
+```{r warning=FALSE}
+
+plot(wisc.pr7[, 1:2], col = wisc.km2$cluster,
+     xlab = "PC1", ylab = "PC2", main = "k-means, k = 2")
+points(wisc.km2$centers[, 1:2], col = 1:2, pch = 8, cex = 2, lwd = 2)
+
+```
+
+Aplicamos el algoritmo kMeans para k=4.
+
+```{r warning=FALSE}
+
+set.seed(1234)
+wisc.km4 <- kmeans(wisc.pr7, centers = 4, nstart = 20, iter.max = 50)
+wisc.km4$size
+table(wisc.km4$cluster)
+
+```
+
+Visualizamos el resultado (la gráfica visualiza los dos primeros ejes de los siete que tienen los datos reducidos).
+
+```{r warning=FALSE}
+
+plot(wisc.pr7[, 1:2], col = wisc.km4$cluster,
+     xlab = "PC1", ylab = "PC2", main = "k-means, k = 4")
+points(wisc.km4$centers[, 1:2], col = 1:4, pch = 8, cex = 2, lwd = 2)
+
+```
+
+#### Clustering jerárquico
+
+Realizamos un clustering de tipo jerárquico, para ello tenemos en cuenta las siguientes consideraciones:
+
+- Los datos siempre tienen que estar escalados para que todas las observaciones estén en un rango parecido.
+- Se calcula la matriz de distancias.
+- Vamos a utilizar la opción de "linkage Completo"
+- Se construye el dendograma y generamos los clústeres.
+
+Para que la comparación con k-means sea homogénea, se utilizan los mismos datos de entrada: las 7 componentes principales calculadas sobre los datos escalados.
+
+```{r warning=FALSE}
+
+wisc.dist <- dist(wisc.pr7)                              # distancia euclídea
+wisc.hclust <- hclust(wisc.dist, method = "complete")    # enlace completo
+
+plot(wisc.hclust, labels = FALSE, hang = -1,
+     main = "Dendograma (enlace completo)", xlab = "", sub = "")
+
+# Corte en dos clústeres
+table(cutree(wisc.hclust, k = 2))
+
+```
+
+Al cortar en dos grupos se obtiene un clúster con casi todas las observaciones y otro con apenas un par de puntos atípicos, lo que no aporta información.
+
+Observando el dendograma vemos que no tiene sentido generar un resultado con dos clústeres. Lo cortamos de maneras que obtengamos cuatro.
+
+```{r warning=FALSE}
+
+wisc.hclust.clusters <- cutree(wisc.hclust, k = 4)
+table(wisc.hclust.clusters)
+
+plot(wisc.hclust, labels = FALSE, hang = -1,
+     main = "Dendograma con corte en 4 clústeres", xlab = "", sub = "")
+rect.hclust(wisc.hclust, k = 4, border = 2:5)
+
+```
+
+Visualizamos el resultado (la gráfica visualiza los dos primeros ejes de los siete que tienen los datos reducidos).
+
+```{r}
+
+plot(wisc.pr7[, 1:2], col = wisc.hclust.clusters,
+     xlab = "PC1", ylab = "PC2", main = "Clustering jerárquico (completo), k = 4")
+
+```
+
+#### Comparamos los resultados de los dos algoritmos.
+
+Primero comparamos la opción del kMeans para k=2. ¿Qué observamos?
+
+```{r warning=FALSE}
+
+table(kmeans_k2 = wisc.km2$cluster, jerarquico_k4 = wisc.hclust.clusters)
+
+```
+
+Los dos clústeres pequeños del jerárquico (puntos atípicos) caen en uno de los grupos del k-means. Casi todas las observaciones del gran clúster jerárquico (unas 380) se asignan a uno de los dos grupos del k-means, aunque unas 70 van al otro. El otro clúster jerárquico de tamaño medio (unos 115 puntos) coincide casi por completo con el segundo grupo del k-means. Los dos métodos coinciden, por tanto, en distinguir un núcleo grande y homogéneo de un grupo más disperso, pero el k-means desplaza la frontera e incluye en el segundo grupo bastantes puntos que el jerárquico deja en el grupo grande.
+
+Segundo comparamos la opción del kMeans para k=4. ¿Qué observamos?
+
+```{r warning=FALSE}
+
+table(kmeans_k4 = wisc.km4$cluster, jerarquico_k4 = wisc.hclust.clusters)
+
+```
+
+Con k = 4 la correspondencia no es uno a uno. El k-means forma un grupo grande (345 puntos) y tres más pequeños (90, 97 y 37); el jerárquico con enlace completo, en cambio, forma un clúster muy grande (447), otro mediano (118) y aísla dos grupos diminutos de puntos extremos (2 y 2). El gran clúster jerárquico se divide entre tres de los grupos del k-means (345, 62 y 40 puntos), y el clúster jerárquico mediano se reparte también entre tres grupos del k-means (48, 35 y 35). Esto confirma que el resultado depende mucho del algoritmo y de los parámetros elegidos (número de clústeres y tipo de enlace).
+
+*(Las etiquetas numéricas de los clústeres son arbitrarias: hay que interpretar las tablas buscando la correspondencia entre filas y columnas, no por el número del clúster.)*
+
+#### Conocimiento experto del problema o **the ground truth**
+
+El conjunto de datos que estamos analizando incluye una etiqueta que informa si el paciente está o no enfermo. Esta etiqueta se puede considerar el conocimiento experto o **the ground truth** del problema. En general, este tipo de información adicional no estará disponible en los primeros pasos de un estudio. De hecho, muchas veces, el realizar un estudio de clustering sirve para o bien definir las etiquetas o bien para ver la calidad y coherencia de las mismas.
+
+Por ejemplo, podríamos haber elegido directamente k=2 al ejecutar el algoritmo del kMeans, pero estaríamos asumiendo como hipótesis que, por tener dos clases, los datos se agrupan en dos grupos. La asunción de esta hipótesis es un salto al vacío y desvirtúa el análisis de clustering. Si queremos utilizar un algoritmo de clustering para ver los grupos que hay y, como hipótesis asumimos que los grupos vienen determinados de manera externa a través de una etiqueta, ¿qué sentido tiene el planteamiento del estudio? En general, las etiquetas están bien construidas y se puede asumir la hipótesis, pero no deja de ser una decisión ajena al estudio no supervisado de los datos.
+
+Volviendo al problema, almacenamos el vector de *diagnosis* como un vector binario de 0s y 1s.
+
+```{r warning=FALSE}
+
+diagnosis <- wisc.df$diagnosis
+head(diagnosis)
+
+```
+
+Ponemos el vector como binario para poder utilizarlo (por ejemplo, para hacer un dibujo).
+
+```{r warning=FALSE}
+
+diagnosis <- as.numeric(wisc.df$diagnosis == "M")   # 1 = maligno, 0 = benigno
+head(diagnosis)
+
+```
+
+Vemos cómo se distribuyen las etiquetas y si los datos están balanceados.
+
+```{r warning=FALSE}
+
+table(diagnosis)
+round(prop.table(table(diagnosis)), 3)
+barplot(table(factor(diagnosis, labels = c("Benigno (0)", "Maligno (1)"))),
+        col = c("grey70", "red"), main = "Distribución del diagnóstico")
+
+```
+
+Hay 357 casos benignos (≈ 62,7 %) y 212 malignos (≈ 37,3 %). Los datos están moderadamente desbalanceados, aunque sin llegar a un desequilibrio extremo.
+
+#### Evaluación utilizando el conocimiento experto
+
+Resultados del kMeans para k=2 respecto a la etiqueta de los datos. ¿Qué observamos?
+
+```{r warning=FALSE}
+
+tabla.km2 <- table(cluster = wisc.km2$cluster, diagnosis = diagnosis)
+tabla.km2
+
+# Proporción de acierto asignando a cada clúster la clase mayoritaria
+sum(apply(tabla.km2, 1, max)) / sum(tabla.km2)
+
+```
+
+El k-means con k = 2 reproduce bastante bien la etiqueta. Uno de los clústeres contiene casi todos los benignos (unos 343) junto con unos 37 malignos; el otro reúne la mayoría de los malignos (unos 175) junto con unos 14 benignos. Si se asigna a cada clúster su clase mayoritaria, la concordancia es de aproximadamente el **91 %**, sin haber utilizado la etiqueta en ningún momento.
+
+Resultados del kMeans para k=4 respecto a la etiqueta de los datos. ¿Qué observamos?
+
+```{r warning=FALSE}
+
+tabla.km4 <- table(cluster = wisc.km4$cluster, diagnosis = diagnosis)
+tabla.km4
+sum(apply(tabla.km4, 1, max)) / sum(tabla.km4)
+
+```
+
+Con k = 4 los grupos se interpretan así:
+
+- Un clúster agrupa la mayoría de los benignos (unos 321) con pocos malignos (unos 24).
+- Dos clústeres son totalmente malignos (unos 97 y unos 37 casos), lo que sugiere distintos «perfiles» de tumor maligno.
+- Un cuarto clúster es mixto (unos 36 benignos y 54 malignos).
+
+Ese clúster mixto recoge precisamente las observaciones fronterizas, cuyas características son intermedias entre ambos diagnósticos.
+
+Resultados del jerárquico respecto a la etiqueta de los datos. ¿Qué observamos?
+
+```{r warning=FALSE}
+
+tabla.hc <- table(cluster = wisc.hclust.clusters, diagnosis = diagnosis)
+tabla.hc
+sum(apply(tabla.hc, 1, max)) / sum(tabla.hc)
+
+```
+
+El jerárquico con enlace completo sobre las 7 componentes produce:
+
+- Un clúster muy grande que contiene prácticamente todos los benignos y también unos 97 malignos.
+- Un clúster casi exclusivamente maligno (unos 113 malignos y 5 benignos).
+- Dos clústeres diminutos (2 observaciones cada uno).
+
+Separa peor que el k-means: el enlace completo es sensible a los valores extremos, que acaban formando clústeres propios.
+
+A modo de comparación, se repite el clustering jerárquico sobre las 30 variables escaladas (sin PCA):
+
+```{r warning=FALSE}
+
+wisc.hclust.full <- hclust(dist(wisc.data.scaled), method = "complete")
+table(cluster = cutree(wisc.hclust.full, k = 4), diagnosis = diagnosis)
+
+```
+
+En este caso se obtienen dos clústeres grandes bastante puros: uno con unos 343 benignos y 40 malignos, y otro con unos 165 malignos y 12 benignos. Los otros dos clústeres son muy pequeños. Por tanto, el resultado del jerárquico depende también de los datos de entrada elegidos.
+
+Se puede observar que algunos puntos no se separan del todo bien teniendo en cuenta la información de las etiquetas y las de los clústeres. ¿Qué ocurre en esos puntos? Quizás sean puntos interesantes para un estudio con más detalles.
+
+Esos puntos son casos cuyas características celulares son intermedias: tumores malignos con núcleos pequeños y regulares, o tumores benignos con núcleos algo más grandes o irregulares. Se sitúan en la zona de solapamiento entre ambos grupos, y ningún método basado únicamente en distancias puede asignarlos correctamente.
+
+```{r warning=FALSE}
+
+# Ejemplo: observaciones malignas asignadas al clúster mayoritariamente benigno (k-means, k = 2)
+cl.benigno <- as.numeric(names(which.max(tabla.km2[, "0"])))
+dudosos <- which(wisc.km2$cluster == cl.benigno & diagnosis == 1)
+length(dudosos)
+head(wisc.df[dudosos, c("id", "diagnosis", "radius_mean", "concave.points_mean", "area_worst")])
+
+```
+
+#### Gráficas del PCA con el color de las etiquetas.
+
+Por último, como curiosidad, repetimos las gráficas que hicimos antes de los ejes coordenados que se obtenían con el PCA, pero coloreando según la etiqueta.
+
+```{r warning=FALSE}
+
+par(mfrow = c(1, 3))
+plot(wisc.pr$x[, c(1, 2)], col = diagnosis + 1, xlab = "PC1", ylab = "PC2", main = "PC1 vs PC2")
+plot(wisc.pr$x[, c(1, 3)], col = diagnosis + 1, xlab = "PC1", ylab = "PC3", main = "PC1 vs PC3")
+plot(wisc.pr$x[, c(1, 9)], col = diagnosis + 1, xlab = "PC1", ylab = "PC9", main = "PC1 vs PC9")
+par(mfrow = c(1, 1))
+
+# Comparación directa: etiqueta real frente al k-means con k = 2
+par(mfrow = c(1, 2))
+plot(wisc.pr7[, 1:2], col = diagnosis + 1,      main = "Etiqueta real (rojo = maligno)", xlab = "PC1", ylab = "PC2")
+plot(wisc.pr7[, 1:2], col = wisc.km2$cluster,   main = "k-means, k = 2",                xlab = "PC1", ylab = "PC2")
+par(mfrow = c(1, 1))
+
+```
+
+Observando cómo se distribuyen las etiquetas en los ejes coordenados del PCA podemos intuir cuáles son los puntos que hemos comentado en el apartado anterior. Puntos que, teniendo distinta etiqueta, tienen – desde un punto de vista de los datos – una situación bastante parecida.
+
+En el plano PC1-PC2 los benignos (negro) se concentran a un lado y los malignos (rojo) se extienden hacia el otro. Ambos grupos se solapan en la zona central, que es precisamente donde se producen los desacuerdos entre los clústeres y la etiqueta.
+
+Podemos elucubrar que … ¿Y si las etiquetas no son totalmente disjuntas? ¿Y si hay pacientes enfermos, pero poco enfermos, y pacientes sanos, pero a punto de estar enfermos?
+
+Es una hipótesis razonable: la variable `diagnosis` es binaria, pero el fenómeno biológico subyacente es probablemente continuo (grado de malignidad o estadio del tumor). Los clústeres mixtos del k-means con k = 4 y la zona de solapamiento del PCA serían precisamente esos casos intermedios. Desde el punto de vista clínico serían los casos más interesantes para un estudio más detallado o para pruebas diagnósticas adicionales.

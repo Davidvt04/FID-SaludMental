@@ -1,0 +1,435 @@
+---
+title: 'Tidyverse: datos de desarrollo humano'
+output: html_notebook
+---
+
+[Tidyverse](https://www.tidyverse.org/) es un conjunto de librerías o paquetes - realmente se debería usar la palabra biblioteca pero no se suele hacer - que comparten, además de un mismo enfoque al programar, una serie de funcionalidades muy útiles al analizar datos.
+
+Este estilo de programación se aproxima a la programación funcional y se basa en las llamadas encadenadas a funciones o *verbos*. Estas llamadas reiteradas se hacen con el operador *pipe* que se escribe usando el símbolo **%\>%**.
+
+Vamos a centrarnos, en primer lugar, en el [paquete dplyr](https://dplyr.tidyverse.org/) manipular datos, de ahí su nombre. Entre en el enlace y fíjese en las funciones o verbos de dicho paquete: *filter*, *select*, *mutate*, etc. Localice la hoja resumen de dicho paquete - *Cheatsheet* - y échele un vistazo antes de hacer los ejercios.
+
+# Ejercicio 1: verbos de *dplyr*
+
+### Previo
+
+Antes de comenzar, si no se ha creado un proyecto nuevo, ¿está seguro del directorio de trabajo en el que está trabajando y si hay objetos cargados previamente en memoria?
+
+```{r}
+
+# Comprobacion del directorio de trabajo
+getwd()
+#setwd(".. ruta de la carpeta deseada ..")
+#getwd()
+
+# Comprobacion de que no hay objetos previamente cargados
+ls() # inidca objetos cargados
+#rm(list = ls()) # borra todos los objetos cargados
+#ls()
+
+#
+```
+
+Cargue la librería antes de comenzar a trabajar. Si no ha instalado previamente el paquete *dplyr* deberá hacerlo. Si ya instalado en el ordenador de trabajo *Tidyverse* entonces no le hará falta. (Observe la consola al realizar la instalación y siga las instrucciones si hicera falta).
+
+```{r}
+
+# Instalación del paquete (sólo si no se ha hecho antes)
+install.packages("dplyr")
+# Cargar la librería
+library(dplyr)
+
+```
+
+En este ejercicio vamos a trabajar con datos de desarrollo humano que vienen dados en el paquete gapminder. Consulte el enlace de wikipedia [Gapminder Foundation](https://en.wikipedia.org/wiki/Gapminder_Foundation) para saber de dónde provienen estos datos.
+
+```{r}
+
+# Instalación del paquete: gapminder
+install.packages('gapminder')
+# Cargar la librería
+library(gapminder)
+
+```
+
+### Un vistazo a los datos
+
+Use las funcions *head* y *str*, de *R-base*, para ver cómo son los datos que vamos a utilizar.
+
+Las variables que contiene son país, continente donde está situado el país, año de los datos registrados, esperanza de vida (lifeExp), población total del país (pop) y producto interior bruto por persona en dólares (gdpPercap).
+
+```{r}
+
+# Seis primeras columnas
+head(gapminder)
+# Estructura de los datos
+str(gapminder)
+# Dimensión: dim()
+dim(gapminder)
+
+```
+
+### Operaciones con el operador pipe: dplyr
+
+Utilicemos el verbo *filter* para filtrar o seleccionar columnas según sus valores. Estudie, viendo la documentación la diferencia con el verbo *select*.
+
+**Filtremos** aquellas observaciones del año 2007.
+
+```{r}
+
+# Filtramos los datos segun un anyo:
+gapminder %>% 
+  filter(year==2007)
+
+# Entre escribir gapminder$year o escribir year en este caso es lo mismo. De la primera forma se ahorra escribir el nombre de la variable, porque el operador $ ofrece con el autodesplegable dicha variable, sin embargo si trabaja con una variable auxiliar debe de tener cuidado de estar tomando los datos correctos. 
+
+```
+
+Tenga en cuenta que la operación anterior es una operación virtual, en el sentido que el contenido del objeto *gapminder* no se modifica. Si quiere almacenar el resultado deberá asignarlo en una variable auxiliar.
+
+Así mismo, observe el estilo de escritura de esta forma de programar. Por ejemplo, aunque sea una sola sentencia de código se suele poner un verbo en cada línea, cómo funciona el autocompletar si está utiizando R-Studio, etc.
+
+**Filtremos** aquellas observaciones de Estados Unidos para el año 2007.
+
+```{r}
+
+# Filtramos los datos por año, 2007, y país United States:
+gapminder %>%
+  filter(year == 2007, country=="United States")
+
+```
+
+El verbo **arrange** se utiliza para realizar reordenaciones en el dataset.
+
+**Ordenemos** según el PIB per cápita - GDP en inglés - de forma ascendente y descendente.
+
+```{r}
+
+# Ordenamos segun el gdp (PIB) - "organizar"
+# Orden normal
+gapminder %>%
+  arrange(gdpPercap)
+# Orden inverso
+gapminder %>%
+  arrange(desc(gdpPercap))
+
+```
+
+El verbo **mutate** permite modificar el dataset añadiendo nuevas variables o realizando cambios en las existentes.
+
+**Modifiquemos** la variable población de manera que los valores sean por millón de habitantes. Es decir, dividamos la población actual entre 1000000.
+
+```{r}
+
+gapminder # Observe previamente los datos para percibir el cambio
+# Modificamos la variable población dividiendo entre 1000000
+gapminder %>%
+  mutate(pop = pop /1000000)
+
+
+```
+
+**Añadimos** una nueva variable que sea el PIB per cápita por la población.
+
+```{r}
+
+gapminder # Observe previamente los datos para percibir el cambio
+
+# Varible que sea el PIB per capita  por la poblacion, nueva variable: gdp
+gapminder %>%
+  mutate(gdp= gdpPercap*pop)
+
+```
+
+El verbo **sumarise** permite realizar operaciones. Este verbo permite realizar operaciones con los valores de las columnas del dataset.
+
+**Calcule** la media de la esperanza de vida de todo el dataset.
+
+```{r}
+
+# Media de la esperanza de vida: función mean, llame al resultado "media"
+gapminder %>% 
+  summarize(media = mean(lifeExp))
+
+
+```
+
+Calcule el valor para varios momentos estadísticos: media, mediana, máximo y mínimo.
+
+```{r}
+
+# Media, mediana, máximo y mínimo: mean, median, max, min
+gapminder %>% 
+  summarize(mean = mean(lifeExp))
+
+gapminder %>% 
+  summarize(median = median(lifeExp))
+
+gapminder %>% 
+  summarize(max = max(lifeExp))
+
+gapminder %>% 
+  summarize(min = min(lifeExp))
+
+# Funciones usuales: mean, median, mode, svd, sum, min, max
+gapminder %>% 
+  summarize(mode = mode(lifeExp))
+
+gapminder %>% 
+  summarize(svd = svd(lifeExp))
+
+gapminder %>% 
+  summarize(sum = sum(lifeExp))
+```
+
+En general se suelen combinar varios verbos a la vez. Por ejemplo, calcule la esperanza de vida para aquellas observaciones que sean del año 2007.
+
+```{r}
+# Media de la esperanza de vida para observaciones del año 2007
+gapminder %>%
+  filter(year==2007) %>%
+  summarize(media = mean(lifeExp))
+
+```
+
+El verbo **group_by** separar o clasificar los datos según una característica en concreto. Se asocian las observaciones a una carácterística común.
+
+Obtenga la media de la esperanza de vida según en primer lugar según el año.
+
+```{r}
+# Media de vida según año
+gapminder %>%
+  group_by(year) %>%
+  summarize(media = mean(lifeExp))
+
+```
+
+Obtenga la media de la esperanza de vida según en segundo lugar según el continente.
+
+```{r}
+
+# Media de vida según continente
+gapminder %>%
+  group_by(continent) %>%
+  summarize(media = mean(lifeExp))
+
+```
+
+# Ejercicio 2: verbos de **ggplot2**
+
+El [paquete ggplot2][<https://ggplot2.tidyverse.org/>] está integrado en Tidyverse y permite realizar gráficas usando el operador **pipe**. Entre en su enlace y échele un vistazo a su hoja explicativa (Cheatsheet).
+
+### Previo
+
+Instale el paquete ggplot2 si no lo tenía instalado previamente, recuerde que si hizo la instalación de Tidyverse al completo ya está instalado, y cargue dicha librería.
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(gapminder)
+
+```
+
+Cree una variable de nombre **gapminder_2007** con los datos filtrados para el año 2007.
+
+```{r}
+# Filtra por el año 2007
+gapminder_2007 <- gapminder %>%
+  filter(year==2007)
+
+```
+
+### Representación de dos variables.
+
+Vamos a estudiar la varible PIB per cápita (gdpPercap) frente a la esperanza de vida (lifeExp).
+
+Observe la siguiente llamada.
+
+```{r}
+
+#Visualizamos los valores del PIB per capita frente a la esperanza de vida
+gapminder_2007%>%
+  ggplot(aes(x=gdpPercap,y=lifeExp))+
+  geom_point()
+
+```
+
+Modifique la grafica de modo que en el eje x aparezca gdpPercap y en el lifeExp. No copie y pegue el código sino escríbalo poco a poco, dejese ayudar por el autocompletar de R-Studio.
+
+```{r}
+#
+gapminder_2007%>%
+  ggplot(aes(x=gdpPercap,y=lifeExp))+
+  geom_point()
+
+```
+
+Añadamos una transformación logarítimica a la gráfica anterior. Escriba scale\_ y lea las opciones que le ofrece el autocompletar.
+
+```{r}
+
+#Repetimos la grafica anterior aplicando una transformacion logaritmica
+gapminder_2007%>%
+  ggplot(aes(x=gdpPercap,y=lifeExp))+
+  geom_point()+
+  scale_x_log10()
+
+```
+
+Añadamos un color según el continente a la gráfica anterior. Escriba un parámetro adicional en aes que se llame color y asignale la variable "continent".
+
+```{r}
+
+# Repetimos coloreando segun el continente
+gapminder_2007%>%
+  ggplot(aes(x=gdpPercap,
+             y=lifeExp, 
+             color=continent))+
+  geom_point()+
+  scale_x_log10()
+
+```
+
+Añada el tamaño de la población a la gráfica anterior, de manera que cada punto esté relacionado con el tamaño de la población. Añada un valor adicional a aes - además de x, y, color - de nombre size y asígnele la variable pop.
+
+```{r}
+
+# Modificamos de manera que se introduzca el tamanyo de la poblacion
+gapminder_2007%>%
+  ggplot(aes(x=gdpPercap,y=lifeExp, color=continent, size=pop))+
+  geom_point()+
+  scale_x_log10()
+
+
+```
+
+Repitamos la gráfica anterior pero estudiando cada continente de manera separada. Para ello añada al final "+\_facet_wrap(\~variable)" siendo la variable el continente. (Use el autocompletar de código).
+
+```{r}
+
+#Otra opcion es separar cada por continentes en distintas graficas
+gapminder_2007%>%
+  ggplot(aes(x=gdpPercap,y=lifeExp, color=continent, size=pop))+
+  geom_point()+
+  scale_x_log10()+
+  facet_wrap(~continent)
+
+
+```
+
+### Representación de dos variables: continuación
+
+Al igual que las gráficas anteriores vamos a estudiar el PIB per cápita según la esperanza de vida. Veamos las distintas opciones que podemos elegir. Filtraremos siempre según el año 2007. (Puede usar la variable anterior o combinar el filtrado con el dibujo).
+
+Repitamos la gráfica del principio estudiando las opcions: geom_point, geom_line, geom_area, geom_smooth. (Escriba código utilizando en autocompletar)
+
+```{r}
+
+# PIB per capita frente a la esperanza de vida (como antes)
+# de varias formas posibles: geom_point, geom_line, geom_area, geom_smooth
+
+gapminder%>%
+  filter(year == 2007)%>%
+  ggplot(aes(x=gdpPercap,y=lifeExp))+
+  geom_line()
+
+```
+
+Constramos un diagrama de barras de manera que tenga en el eje x los continentes y en el y la esperanza de vida. Utilice la opción geom_col() después de la función ggplot. (Use el autocompletar de código).
+
+```{r}
+
+# Diagrama de barras con los continentes en las xs y la  esperanza de vida en las ys:
+gapminder%>%
+  filter(year == 2007)%>%
+  ggplot(aes(x=continent,y=lifeExp))+
+  geom_col()
+
+
+```
+
+Realicemos ahora el histograma de los valores de la esperanza de vida. Basta usar la opción geom_histogram() después de ggplot y, en aes, la x asignada a lifeExp.
+
+```{r}
+
+# Histograma (distribucion de la variable) de la esperaza de vida
+gapminder%>%
+  filter(year == 2007)%>%
+  ggplot(aes(x=lifeExp))+
+  geom_histogram()
+
+```
+
+Repetimos la gráfica anterior ajustando según el ancho. (Basta poner "binwidth = 5") dentro de geom_histogram().
+
+```{r}
+
+# Ajustamos segun el ancho
+gapminder%>%
+  filter(year == 2007)%>%
+  ggplot(aes(x=lifeExp))+
+  geom_histogram(binwidth = 5)
+
+
+```
+
+Construyamos el *boxplot*, o diagrama de cajas, de la esperanza de vida. ¿Cómo interpeta la gráfica resultante? Basta añadir la opción geom_boxplot() después de ggplot, en aes ponga x con valor 1 y la y con lifeExp. (Utilice el autcompletar)
+
+[Boxplot](https://es.wikipedia.org/wiki/Diagrama_de_caja)
+
+```{r}
+
+# "Box plots" de la esperanza de vida
+gapminder%>%
+  filter(year == 2007)%>%
+  ggplot(aes(x=1,y=lifeExp))+
+  geom_boxplot()
+
+```
+
+Repita la gráfica anterior pero separando según el continente. Basta poner en el valor de x la variable continent.
+
+```{r}
+
+# Repetimos el "box plots" diferenciando por continente
+gapminder%>%
+  filter(year == 2007)%>%
+  ggplot(aes(x=continent,y=lifeExp))+
+  geom_boxplot()
+
+```
+
+### Representación mediante in gráfico interactivo
+
+Veamos la evolución de la esperanza de vida a través de un gráfico interactivo. Se empleará la librería *plotly*.
+
+```{r warning=FALSE}
+install.packages("plotly")
+
+library(plotly)
+library(gapminder)
+
+df <- gapminder 
+
+fig <- df %>%
+  plot_ly(
+    x = ~gdpPercap, 
+    y = ~lifeExp, 
+    size = ~pop, 
+    color = ~continent, 
+    frame = ~year, 
+    text = ~country, 
+    hoverinfo = "text",
+    type = 'scatter',
+    mode = 'markers'
+  )
+
+fig <- fig %>% layout(
+    xaxis = list(
+      type = "log"
+    )
+  )
+
+fig
+
+```
