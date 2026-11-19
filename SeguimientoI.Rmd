@@ -13,27 +13,27 @@ output:
 
 # Información del grupo
 
--   **Grupo de trabajo:** 1
--   **Miembros:**
-    1.  Elena de los Santos Barrera
-    2.  David Valencia Toscano
-    3.  Beatriz Vela Moscoso
+- **Grupo de trabajo:** 1
+- **Miembros:**
+  1.  Elena de los Santos Barrera
+  2.  David Valencia Toscano
+  3.  Beatriz Vela Moscoso
 
 # Conjunto de datos
 
--   **Nombre:** Global Mental Health & Lifestyle Survey
--   **Enlace:** <https://www.kaggle.com/code/lalit7881/global-mental-health-lifestyle-survey-92-15/input?scriptVersionId=294778087>
--   **Fichero:** `data/mental_health.csv`
+- **Nombre:** Global Mental Health & Lifestyle Survey
+- **Enlace:** <https://www.kaggle.com/code/lalit7881/global-mental-health-lifestyle-survey-92-15/input?scriptVersionId=294778087>
+- **Fichero:** `data/mental_health.csv`
 
 **Encuestados y variables.** El fichero contiene **10.000 encuestados**, uno por fila, y **51 variables**: 50 predictores y la variable objetivo. No hay valores ausentes ni registros duplicados. De las 51 columnas, 13 son categóricas y 38 numéricas, aunque buena parte de las numéricas son escalas discretas (de 1 a 10 o de 0 a 10) o indicadores binarios (0/1). Los predictores se organizan en siete bloques:
 
--   **Sociodemográficos:** edad, género, país, nivel educativo, estado civil y nivel de ingresos.
--   **Laborales:** situación laboral, horas de trabajo semanales, trabajo en remoto, satisfacción laboral, estrés laboral, conciliación, acoso en el trabajo y apoyo de la empresa a la salud mental.
--   **Estilo de vida:** ejercicio, horas de sueño, consumo de cafeína, alcohol y tabaco, tiempo de pantalla y de redes sociales, tiempo de ocio, calidad de la dieta y estrés económico.
--   **Síntomas:** doce síntomas emocionales puntuados de 0 a 10 (tristeza, pérdida de interés, problemas de sueño, fatiga, alteración del apetito, sentimiento de inutilidad, dificultad de concentración, ansiedad, cambios de humor, irritabilidad, pensamientos obsesivos y conductas compulsivas) y la frecuencia de ataques de pánico (de 0 a 4).
--   **Riesgo clínico:** ideas de autolesión, ideas suicidas, antecedentes familiares de enfermedad mental y trauma previo.
--   **Tratamiento:** diagnóstico previo, búsqueda de tratamiento, terapia actual y medicación actual.
--   **Entorno social:** apoyo social, número de amigos íntimos, sentirse comprendido, soledad y facilidad para hablar de salud mental.
+- **Sociodemográficos:** edad, género, país, nivel educativo, estado civil y nivel de ingresos.
+- **Laborales:** situación laboral, horas de trabajo semanales, trabajo en remoto, satisfacción laboral, estrés laboral, conciliación, acoso en el trabajo y apoyo de la empresa a la salud mental.
+- **Estilo de vida:** ejercicio, horas de sueño, consumo de cafeína, alcohol y tabaco, tiempo de pantalla y de redes sociales, tiempo de ocio, calidad de la dieta y estrés económico.
+- **Síntomas:** doce síntomas emocionales puntuados de 0 a 10 (tristeza, pérdida de interés, problemas de sueño, fatiga, alteración del apetito, sentimiento de inutilidad, dificultad de concentración, ansiedad, cambios de humor, irritabilidad, pensamientos obsesivos y conductas compulsivas) y la frecuencia de ataques de pánico (de 0 a 4).
+- **Riesgo clínico:** ideas de autolesión, ideas suicidas, antecedentes familiares de enfermedad mental y trauma previo.
+- **Tratamiento:** diagnóstico previo, búsqueda de tratamiento, terapia actual y medicación actual.
+- **Entorno social:** apoyo social, número de amigos íntimos, sentirse comprendido, soledad y facilidad para hablar de salud mental.
 
 **Variable objetivo.** `Has_Mental_Health_Issue` es una variable binaria: vale 1 si la persona declara tener un problema de salud mental y 0 si no. Es una autodeclaración del encuestado, no un diagnóstico clínico. Su distribución e la siguiente: **9.216 personas (92,2 %)** declaran un problema y solo **784 (7,8 %)** no lo hacen. Este desbalanceo condiciona el análisis. Un modelo que respondiera siempre «sí» acertaría el 92,2 %
 
@@ -470,11 +470,91 @@ En general, esta primera inspección nos ha permitido conocer la estructura del 
 
 ## Problema a resolver
 
-> **Pendiente:** tipo de problema (clasificación binaria), variable objetivo y pregunta que se quiere responder.
+El objetivo del análisis supervisado es **predecir si una persona declara tener un problema de salud mental** a partir de sus características sociodemográficas, laborales, de estilo de vida, de sintomatología y de entorno social. La pregunta que se quiere responder es la siguiente: *¿es posible identificar, a partir de los hábitos y las circunstancias de una persona, si presenta un problema de salud mental, y qué factores influyen más en ello?*
+
+Se trata de un problema de **clasificación binaria**, ya que la variable objetivo, `Has_Mental_Health_Issue`, es categórica y solo toma dos valores: **1** (la persona declara un problema de salud mental) y **0** (no lo declara). Para el modelado, esta variable se tratará como un factor con dos niveles.
+
+Hay que tener en cuenta que **las clases están muy desbalanceadas** (92,2 % frente a 7,8 %). Por ello, la *accuracy* no es una métrica adecuada por sí sola: un modelo trivial que predijera siempre la clase mayoritaria (ZeroR) ya alcanzaría un 92,2 % de acierto sin aprender nada. Este valor se tomará como **línea base** que cualquier modelo debe superar, y la evaluación se apoyará en métricas que tengan en cuenta ambas clases.
+
+Además de la capacidad predictiva, interesa la **interpretabilidad**: identificar qué variables tienen más peso en la predicción permitirá relacionar los resultados con los factores de riesgo y de protección de la salud mental.
 
 ## Variables predictoras y posible fuga de información
 
-> **Pendiente:** selección de las variables predictoras y discusión de las variables que podrían filtrar información de la clase (por ejemplo, diagnósticos o tratamientos previos).
+Se parte de las **50 variables** restantes como predictoras, agrupadas en siete bloques.
+
+```{r bloques-predictores}
+# Bloques temáticos de variables predictoras
+bloques <- list(
+  Sociodemograficos = c("Age", "Gender", "Country", "Education",
+                        "Marital_Status", "Income_Level"),
+  Laborales         = c("Employment_Status", "Work_Hours_Per_Week", "Remote_Work",
+                        "Job_Satisfaction", "Work_Stress_Level", "Work_Life_Balance",
+                        "Ever_Bullied_At_Work", "Company_Mental_Health_Support"),
+  Estilo_de_vida    = c("Exercise_Per_Week", "Sleep_Hours_Night", "Caffeine_Drinks_Day",
+                        "Alcohol_Frequency", "Smoking", "Screen_Time_Hours_Day",
+                        "Social_Media_Hours_Day", "Hobby_Time_Hours_Week",
+                        "Diet_Quality", "Financial_Stress"),
+  Sintomas          = c("Feeling_Sad_Down", "Loss_Of_Interest", "Sleep_Trouble",
+                        "Fatigue", "Poor_Appetite_Or_Overeating", "Feeling_Worthless",
+                        "Concentration_Difficulty", "Anxious_Nervous", "Panic_Attacks",
+                        "Mood_Swings", "Irritability", "Obsessive_Thoughts",
+                        "Compulsive_Behavior"),
+  Riesgo_clinico    = c("Self_Harm_Thoughts", "Suicidal_Thoughts",
+                        "Family_History_Mental_Illness", "Trauma_History"),
+  Tratamiento       = c("Previously_Diagnosed", "Ever_Sought_Treatment",
+                        "On_Therapy_Now", "On_Medication"),
+  Entorno_social    = c("Social_Support", "Close_Friends_Count", "Feel_Understood",
+                        "Loneliness", "Discuss_Mental_Health")
+)
+
+# Número de variables por bloque y comprobación de que están todas las predictoras
+lengths(bloques)
+setequal(unlist(bloques), setdiff(names(datos_raw), "Has_Mental_Health_Issue"))
+```
+
+### Posible fuga de información
+
+Las variables de **tratamiento** (diagnóstico previo, terapia, medicación…) podrían filtrar la respuesta, ya que son más una consecuencia del problema que una causa. Se comprueba si separan las clases:
+
+```{r fuga-tratamiento}
+# Proporción de personas que declaran un problema de salud mental
+# según el valor de cada variable de tratamiento y de riesgo clínico (0/1)
+variables_fuga <- c(bloques$Tratamiento, bloques$Riesgo_clinico)
+
+# % que declara un problema según la variable valga 0 o 1
+pct_problema <- sapply(variables_fuga, function(v)
+  100 * tapply(datos_raw$Has_Mental_Health_Issue, datos_raw[[v]], mean))
+rownames(pct_problema) <- c("Valor 0", "Valor 1")
+round(t(pct_problema), 1)
+```
+
+El porcentaje se mantiene **en torno al 92 %** con 0 y con 1, así que no hay fuga. Se calcula también la correlación de cada predictora numérica con la objetivo:
+
+```{r correlacion-objetivo, fig.height=8}
+# Correlación de cada predictora numérica con la variable objetivo
+predictoras_num <- datos_raw %>%
+  select(where(is.numeric), -Has_Mental_Health_Issue) %>%
+  names()
+
+cor_objetivo <- data.frame(
+  Variable    = predictoras_num,
+  Correlacion = sapply(predictoras_num,
+                       function(v) cor(datos_raw[[v]], datos_raw$Has_Mental_Health_Issue))
+)
+
+ggplot(cor_objetivo, aes(x = reorder(Variable, Correlacion), y = Correlacion,
+                         fill = Correlacion > 0)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(title = "Correlación de las predictoras numéricas con Has_Mental_Health_Issue",
+       x = NULL, y = "Correlación de Pearson") +
+  theme_minimal()
+
+# Máxima correlación en valor absoluto
+max(abs(cor_objetivo$Correlacion))
+```
+
+Todas las correlaciones son **muy débiles** (inferiores a 0,06): ninguna variable explica el problema por sí sola, lo que anticipa una clasificación difícil. Aun así, se compararán los modelos **con y sin el bloque de tratamiento**.
 
 ## Preprocesado previsto
 
