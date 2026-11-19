@@ -138,9 +138,22 @@ datos_raw %>% select(all_of(sintomas), Panic_Attacks) %>% pivot_longer(everythin
   labs(title = "Distribución de los síntomas", x = "Intensidad del síntoma", y = "Frecuencia")
 ```
 
-**Interpretación.** Las variables continuas tienen distribuciones aproximadamente **simétricas** (edad, horas de trabajo, sueño, pantalla) o **ligeramente asimétricas a la derecha** (cafeína, redes sociales, ocio, amigos). Los atípicos son pocos, como mucho el `r fmt(max(atipicos$"Atípicos (%)"), 1)` % de una variable, y todos son **valores plausibles** (por ejemplo, 70 horas de trabajo o 11 horas de sueño), no errores de medida. **Decisión:** no los eliminamos; los modelos de árboles son insensibles a ellos y en los demás el escalado reduce su influencia. Los doce síntomas tienen una distribución **casi uniforme** entre 0 y 10, algo poco habitual en datos clínicos reales, donde esperaríamos muchas personas con pocos síntomas y pocas con muchos. Solo los ataques de pánico tienen esa forma asimétrica. \## Distribución de las variables categóricas
+**Interpretación.** Las variables continuas tienen distribuciones aproximadamente **simétricas** (edad, horas de trabajo, sueño, pantalla) o **ligeramente asimétricas a la derecha** (cafeína, redes sociales, ocio, amigos). Los atípicos son pocos, como mucho el `r fmt(max(atipicos$"Atípicos (%)"), 1)` % de una variable, y todos son **valores plausibles** (por ejemplo, 70 horas de trabajo o 11 horas de sueño), no errores de medida. **Decisión:** no los eliminamos; los modelos de árboles son insensibles a ellos y en los demás el escalado reduce su influencia. Los doce síntomas tienen una distribución **casi uniforme** entre 0 y 10, algo poco habitual en datos clínicos reales, donde esperaríamos muchas personas con pocos síntomas y pocas con muchos. Solo los ataques de pánico tienen esa forma asimétrica.\
 
-> **Pendiente:** diagramas de barras.
+## Distribución de las variables categóricas
+
+```{r barras-categoricas, fig.height=9}
+# Diagrama de barras horizontal de cada variable categórica, ordenado por frecuencia
+frec_cat %>%
+  ggplot(aes(x = reorder(Categoría, Frecuencia), y = Frecuencia)) +
+  geom_col(fill = "#2c7fb8") +
+  coord_flip() +
+  facet_wrap(~ Variable, scales = "free", ncol = 3) +
+  labs(title = "Frecuencia de cada categoría en las variables categóricas", x = NULL, y = "Número de personas") +
+  theme(axis.text.y = element_text(size = 8))
+```
+
+**Interpretación.** Las categorías están razonablemente repartidas en casi todas las variables. Los casos que destacan son las categorías minoritarias ya señaladas («Prefer not to say» en género, «Widowed» en estado civil, «PhD» en educación) y el peso de Estados Unidos e India entre los países. No hay erratas ni variantes de escritura de una misma categoría, así que **no hace falta unificar categorías**.
 
 ## Relación de las variables con la variable objetivo
 
