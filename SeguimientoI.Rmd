@@ -1,0 +1,114 @@
+---
+title: "Seguimiento I: inspección de datos y planteamiento del análisis supervisado"
+subtitle: "Global Mental Health & Lifestyle Survey"
+author: "Grupo X: Elena de los Santos Barrera, David Valencia Toscano y Beatriz Vela Moscoso"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+---
+
+# Información del grupo
+
+- **Grupo de trabajo:** X *(pendiente: indicar el número de grupo)*
+- **Miembros:**
+  1.  Elena de los Santos Barrera
+  2.  David Valencia Toscano
+  3.  Beatriz Vela Moscoso
+
+# Conjunto de datos
+
+- **Nombre:** Global Mental Health & Lifestyle Survey
+- **Enlace:** <https://www.kaggle.com/code/lalit7881/global-mental-health-lifestyle-survey-92-15/input?scriptVersionId=294778087>
+- **Fichero:** `data/mental_health.csv`
+
+> **Pendiente:** descripción breve del conjunto de datos (origen, número de encuestados y variables) y de la variable objetivo `Has_Mental_Health_Issue`.
+
+# Resumen de las tareas realizadas
+
+> **Pendiente:** resumen de las tareas de este seguimiento (carga, inspección, visualización y planteamiento del análisis supervisado). Se redacta al final, cuando el resto del documento esté completo.
+
+# Carga de los datos
+
+> **Pendiente:** librerías utilizadas, semilla para la reproducibilidad y lectura del fichero desde la carpeta `data`.
+
+# Inspección de los datos
+
+## Estructura y tipos de las variables
+
+> **Pendiente:** dimensiones, primeras filas y tipo de cada variable.
+
+## Descripción de las variables
+
+> **Pendiente:** agrupar las variables por bloques temáticos (demográficas, laborales, estilo de vida, síntomas, historial clínico, apoyo social y variable objetivo) y describir su significado y escala.
+
+## Calidad de los datos
+
+> **Pendiente:** valores perdidos, filas duplicadas, valores fuera de rango o inconsistentes y variables con varianza casi nula.
+
+## Estadísticos descriptivos
+
+> **Pendiente:** resumen de las variables numéricas y frecuencias de las categóricas.
+
+## Variable objetivo
+
+> **Pendiente:** distribución de `Has_Mental_Health_Issue` y grado de balance entre clases.
+
+# Visualización de los datos
+
+## Distribución de las variables numéricas
+
+> **Pendiente:** histogramas y diagramas de caja.
+
+## Distribución de las variables categóricas
+
+> **Pendiente:** diagramas de barras.
+
+## Relación de las variables con la variable objetivo
+
+> **Pendiente:** comparación de las variables según la clase (diagramas de caja, densidades y proporciones por categoría).
+
+## Correlaciones entre variables
+
+> **Pendiente:** matriz de correlaciones e identificación de variables redundantes.
+
+## Conclusiones de la exploración
+
+> **Pendiente:** principales hallazgos de la inspección y la visualización, y decisiones de preprocesado que se derivan de ellos.
+
+# Planteamiento del análisis supervisado
+
+## Problema a resolver
+
+> **Pendiente:** tipo de problema (clasificación binaria), variable objetivo y pregunta que se quiere responder.
+
+## Variables predictoras y posible fuga de información
+
+> **Pendiente:** selección de las variables predictoras y discusión de las variables que podrían filtrar información de la clase (por ejemplo, diagnósticos o tratamientos previos).
+
+## Preprocesado previsto
+
+> **Pendiente:** tratamiento de valores perdidos, codificación de variables categóricas, escalado y eliminación de variables poco informativas o redundantes.
+
+## Estrategia de evaluación y métricas
+
+> **Pendiente:** división en entrenamiento y test, validación cruzada, tratamiento del desbalanceo si lo hay y métricas de evaluación.
+
+## Modelos a comparar
+
+> **Pendiente:** algoritmos de clasificación que se van a entrenar y ajustar, y cómo se compararán.
+
+## Selección de variables
+
+> **Pendiente:** métodos de selección de variables de tipo filtro y wrapper que se van a aplicar.
+
+# Próximos pasos
+
+> **Pendiente:** tareas previstas para los siguientes seguimientos (análisis supervisado completo y análisis no supervisado).
+
+# Información de la sesión
+
+> **Pendiente:** versiones de R y de los paquetes utilizados, para la reproducibilidad.
