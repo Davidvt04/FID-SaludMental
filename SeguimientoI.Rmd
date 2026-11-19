@@ -76,33 +76,434 @@ El conjunto de datos contiene **10.000 observaciones y 51 variables**, incluyend
 
 ## Estructura y tipos de las variables
 
-> **Pendiente:** dimensiones, primeras filas y tipo de cada variable.
+En primer lugar, vamos a comprobar las dimensiones del conjunto de datos, visualizar las primeras observaciones y conocer el tipo de cada variable.
+
+```{r estructura}
+# Dimensiones del dataset
+dim(datos_raw)
+
+# Primeras 6 filas
+head(datos_raw)
+
+# Estructura de los datos
+str(datos_raw)
+
+# Tipo de cada variable
+tipos <- data.frame(
+  Variable = names(datos_raw),
+  Type = sapply(datos_raw, class)
+)
+
+kable(tipos, row.names = FALSE,
+      caption = "Tipos de las variables")
+```
+
+El conjunto de datos contiene **10.000 observaciones y 51 variables**, de las cuales 50 son predictoras y una es la variable objetivo.
+
+Encontramos variables numéricas y categóricas. Aunque algunas aparecen almacenadas como numéricas, no todas representan cantidades continuas, ya que también hay indicadores binarios y escalas de valoración.
+
+Esta diferencia será importante durante el preprocesamiento, puesto que no todas las variables deben tratarse de la misma manera.
 
 ## Descripción de las variables
 
-> **Pendiente:** agrupar las variables por bloques temáticos (demográficas, laborales, estilo de vida, síntomas, historial clínico, apoyo social y variable objetivo) y describir su significado y escala.
+Para comprender mejor el conjunto de datos, agrupamos las variables en ocho bloques temáticos según la información que representan.
+
+```{r descripcion}
+bloques <- data.frame(
+  Bloque = c(
+    "Sociodemográficas",
+    "Laborales",
+    "Estilo de vida",
+    "Síntomas",
+    "Historial clínico",
+    "Tratamiento",
+    "Apoyo social",
+    "Variable objetivo"
+  ),
+
+  Variables = c(
+    "Age, Gender, Country, Education, Marital_Status, Income_Level",
+
+    "Employment_Status, Work_Hours_Per_Week, Remote_Work, Job_Satisfaction, Work_Stress_Level, Work_Life_Balance, Ever_Bullied_At_Work, Company_Mental_Health_Support",
+
+    "Exercise_Per_Week, Sleep_Hours_Night, Caffeine_Drinks_Day, Alcohol_Frequency, Smoking, Screen_Time_Hours_Day, Social_Media_Hours_Day, Hobby_Time_Hours_Week, Diet_Quality, Financial_Stress",
+
+    "Feeling_Sad_Down, Loss_Of_Interest, Sleep_Trouble, Fatigue, Poor_Appetite_Or_Overeating, Feeling_Worthless, Concentration_Difficulty, Anxious_Nervous, Mood_Swings, Irritability, Obsessive_Thoughts, Compulsive_Behavior, Panic_Attacks",
+
+    "Self_Harm_Thoughts, Suicidal_Thoughts, Family_History_Mental_Illness, Trauma_History",
+
+    "Previously_Diagnosed, Ever_Sought_Treatment, On_Therapy_Now, On_Medication",
+
+    "Social_Support, Close_Friends_Count, Feel_Understood, Loneliness, Discuss_Mental_Health",
+
+    "Has_Mental_Health_Issue"
+  ),
+
+  Tipo = c(
+    "Numérica, nominal y ordinal",
+    "Numérica, categórica y binaria",
+    "Numérica y categórica",
+    "Numérica discreta",
+    "Binaria (0/1)",
+    "Binaria (0/1)",
+    "Numérica y categórica",
+    "Binaria (0/1)"
+  )
+)
+
+kable(bloques, row.names = FALSE,
+      caption = "Clasificación de las variables")
+```
+
+Los bloques contienen la siguiente información:
+
+-   **Sociodemográficas:** edad, género, país, estudios, estado civil e ingresos. La edad es numérica, mientras que las restantes son categóricas nominales u ordinales.
+-   **Laborales:** situación laboral, horas trabajadas, trabajo en remoto, satisfacción laboral, estrés, conciliación y apoyo de la empresa. Incluyen cantidades, categorías y escalas de valoración.
+-   **Estilo de vida:** hábitos relacionados con el ejercicio, descanso, alimentación, consumo de sustancias, uso de pantallas y tiempo de ocio. Incluyen horas, frecuencias y categorías.
+-   **Síntomas:** doce síntomas emocionales y psicológicos valorados de 0 a 10, además de los ataques de pánico, cuya escala es de 0 a 4.
+-   **Historial clínico:** antecedentes familiares, experiencias traumáticas y pensamientos de autolesión o suicidio. Son indicadores binarios.
+-   **Tratamiento:** diagnóstico previo, búsqueda de ayuda, terapia y medicación. Son variables binarias.
+-   **Apoyo social:** número de amigos, apoyo recibido, sentimiento de comprensión y soledad, y facilidad para hablar de salud mental. Incluyen cantidades, escalas y categorías.
+-   **Variable objetivo:** `Has_Mental_Health_Issue`, que toma el valor 1 si el encuestado declara tener un problema de salud mental y 0 si no lo declara.
+
+Esta clasificación nos ayudará a decidir cómo preparar las variables antes del entrenamiento de los modelos.
 
 ## Calidad de los datos
 
-> **Pendiente:** valores perdidos, filas duplicadas, valores fuera de rango o inconsistentes y variables con varianza casi nula.
+Antes de realizar el análisis, comprobamos si existen valores ausentes, filas duplicadas, valores fuera de rango, posibles inconsistencias y variables con varianza casi nula.
+
+### Valores ausentes
+
+```{r valores-ausentes}
+# Número total de valores ausentes
+sum(is.na(datos_raw))
+
+# Valores ausentes por variable
+colSums(is.na(datos_raw))
+```
+
+No se han encontrado valores ausentes en el conjunto de datos, por lo que no será necesario aplicar técnicas de imputación.
+
+### Filas duplicadas
+
+```{r duplicados}
+# Número de filas duplicadas
+sum(duplicated(datos_raw))
+```
+
+No se han encontrado registros duplicados, por lo que no será necesario eliminar observaciones por este motivo.
+
+### Valores fuera de rango
+
+Comprobamos los valores mínimos y máximos de algunas variables para detectar posibles errores en las observaciones.
+
+```{r rangos}
+# Edad
+range(datos_raw$Age, na.rm = TRUE)
+
+# Horas de sueño
+range(datos_raw$Sleep_Hours_Night, na.rm = TRUE)
+
+# Horas de trabajo semanales
+range(datos_raw$Work_Hours_Per_Week, na.rm = TRUE)
+
+# Horas de pantalla al día
+range(datos_raw$Screen_Time_Hours_Day, na.rm = TRUE)
+
+# Frecuencia de ataques de pánico
+range(datos_raw$Panic_Attacks, na.rm = TRUE)
+```
+
+Mediante estas comprobaciones podemos conocer los valores extremos de variables importantes como la edad, las horas de sueño y el tiempo dedicado al trabajo o a las pantallas.
+
+También comprobamos que las variables de síntomas se encuentren dentro de sus escalas correspondientes.
+
+```{r rango-sintomas}
+# Variables de síntomas con escala de 0 a 10
+sintomas <- c(
+  "Feeling_Sad_Down",
+  "Loss_Of_Interest",
+  "Sleep_Trouble",
+  "Fatigue",
+  "Poor_Appetite_Or_Overeating",
+  "Feeling_Worthless",
+  "Concentration_Difficulty",
+  "Anxious_Nervous",
+  "Mood_Swings",
+  "Irritability",
+  "Obsessive_Thoughts",
+  "Compulsive_Behavior"
+)
+
+# Síntomas fuera del rango 0-10
+sum(datos_raw[sintomas] < 0 |
+    datos_raw[sintomas] > 10, na.rm = TRUE)
+
+# Ataques de pánico fuera del rango 0-4
+sum(datos_raw$Panic_Attacks < 0 |
+    datos_raw$Panic_Attacks > 4, na.rm = TRUE)
+
+# Valores incorrectos en la variable objetivo
+sum(!datos_raw$Has_Mental_Health_Issue %in% c(0, 1),
+    na.rm = TRUE)
+```
+
+Estas comprobaciones permiten detectar puntuaciones que no respeten las escalas definidas en el conjunto de datos.
+
+Si se identifican valores fuera de rango, será necesario revisarlos antes de realizar el análisis supervisado.
+
+### Posibles inconsistencias
+
+Además de comprobar los rangos, revisamos algunas relaciones entre variables que podrían resultar contradictorias.
+
+```{r inconsistencias}
+# Desempleados con horas de trabajo
+sum(datos_raw$Employment_Status == "Unemployed" &
+    datos_raw$Work_Hours_Per_Week > 0, na.rm = TRUE)
+
+# Estudiantes con horas de trabajo
+sum(datos_raw$Employment_Status == "Student" &
+    datos_raw$Work_Hours_Per_Week > 0, na.rm = TRUE)
+
+# Más horas de redes sociales que de pantalla
+sum(datos_raw$Social_Media_Hours_Day >
+    datos_raw$Screen_Time_Hours_Day, na.rm = TRUE)
+```
+
+Se han comprobado tres posibles inconsistencias: personas desempleadas que indican horas de trabajo, estudiantes que también trabajan y personas que declaran dedicar más tiempo a redes sociales que al uso total de pantallas.
+
+Estas situaciones pueden indicar problemas en los datos, aunque no necesariamente son errores. Por ejemplo, una persona estudiante puede trabajar al mismo tiempo, y alguien desempleado puede haber realizado trabajos ocasionales.
+
+Por este motivo, no eliminaremos estos registros automáticamente. Se tendrán en cuenta como posibles limitaciones del conjunto de datos.
+
+### Variables con varianza casi nula
+
+Utilizamos la función `nearZeroVar()` del paquete `caret`, que permite detectar variables cuyos valores presentan muy poca variación.
+
+```{r varianza}
+# Variables con varianza casi nula
+nearZeroVar(datos_raw)
+
+# Información detallada
+nzv <- nearZeroVar(datos_raw, saveMetrics = TRUE)
+
+# Mostrar resultados
+nzv
+```
+
+Las variables con varianza casi nula pueden aportar poca información a los modelos predictivos, ya que sus valores son prácticamente iguales en la mayoría de las observaciones.
+
+En caso de detectar alguna, se estudiará si conviene eliminarla durante el preprocesamiento.
 
 ## Estadísticos descriptivos
 
-> **Pendiente:** resumen de las variables numéricas y frecuencias de las categóricas.
+Calculamos los principales estadísticos para conocer mejor la distribución de las variables numéricas y categóricas.
+
+### Variables numéricas
+
+Utilizamos la función `summary()` para obtener los valores mínimos, máximos, media, mediana y cuartiles.
+
+```{r estadisticos-numericos}
+# Seleccionar variables numéricas
+datos_num <- datos_raw %>%
+  select(where(is.numeric))
+
+# Resumen estadístico
+summary(datos_num)
+
+# Desviación típica
+sapply(datos_num, sd, na.rm = TRUE)
+```
+
+La media y la mediana permiten conocer los valores centrales, mientras que la desviación típica indica cuánto varían los datos respecto a la media.
+
+Para interpretar mejor los resultados, nos centramos en algunas variables relacionadas con nuestro objetivo de estudio.
+
+```{r medias}
+# Media de algunas variables relevantes
+mean(datos_raw$Age, na.rm = TRUE)
+
+mean(datos_raw$Sleep_Hours_Night, na.rm = TRUE)
+
+mean(datos_raw$Work_Stress_Level, na.rm = TRUE)
+
+mean(datos_raw$Social_Support, na.rm = TRUE)
+```
+
+Estas variables resultan interesantes porque representan características personales, hábitos de descanso, condiciones laborales y apoyo social.
+
+La edad media permite conocer el perfil general de los encuestados, mientras que las horas de sueño aportan información sobre sus hábitos de descanso.
+
+Por otro lado, el estrés laboral y el apoyo social son factores que podrían estar relacionados con el bienestar emocional.
+
+Sin embargo, estos estadísticos describen al conjunto de encuestados y, por sí solos, no permiten establecer relaciones con la variable objetivo.
+
+### Variables categóricas
+
+Para las variables categóricas utilizamos tablas de frecuencias, que muestran cuántas observaciones pertenecen a cada categoría.
+
+```{r estadisticos-categoricos}
+# Seleccionar variables categóricas
+datos_cat <- datos_raw %>%
+  select(where(is.character))
+
+# Frecuencias de todas las variables categóricas
+lapply(datos_cat, table)
+
+# Frecuencias de algunas variables relevantes
+table(datos_raw$Gender)
+
+table(datos_raw$Education)
+
+table(datos_raw$Employment_Status)
+
+table(datos_raw$Income_Level)
+
+table(datos_raw$Diet_Quality)
+
+table(datos_raw$Smoking)
+```
+
+Estas tablas permiten conocer las categorías más frecuentes y comprobar si existen diferencias importantes entre sus tamaños.
+
+Nos interesan especialmente variables como el género, la situación laboral, el nivel de ingresos y la calidad de la alimentación, ya que forman parte de las características personales y los hábitos que queremos estudiar.
+
+Las diferencias en la frecuencia de cada categoría se tendrán en cuenta posteriormente, especialmente si existen grupos con pocas observaciones.
 
 ## Variable objetivo
 
-> **Pendiente:** distribución de `Has_Mental_Health_Issue` y grado de balance entre clases.
+La variable que queremos predecir es `Has_Mental_Health_Issue`, que indica si una persona declara tener un problema de salud mental.
+
+Se trata de una variable binaria:
+
+-   **0:** no declara un problema de salud mental.
+-   **1:** declara un problema de salud mental.
+
+Es importante señalar que esta variable representa la declaración del encuestado y no necesariamente un diagnóstico clínico.
+
+### Distribución de las clases
+
+```{r objetivo}
+# Frecuencia de cada clase
+table(datos_raw$Has_Mental_Health_Issue)
+
+# Proporción de cada clase
+prop.table(
+  table(datos_raw$Has_Mental_Health_Issue)
+)
+
+# Porcentaje de cada clase
+round(
+  prop.table(
+    table(datos_raw$Has_Mental_Health_Issue)
+  ) * 100,
+  2
+)
+```
+
+### Representación gráfica
+
+Para observar más claramente la diferencia entre las dos clases, representamos su distribución mediante un diagrama de barras.
+
+```{r grafico-objetivo}
+# Diagrama de barras de la variable objetivo
+ggplot(datos_raw,
+       aes(x = factor(Has_Mental_Health_Issue))) +
+  geom_bar(fill = "steelblue") +
+  labs(
+    title = "Distribución de la variable objetivo",
+    x = "Problema de salud mental (0 = No, 1 = Sí)",
+    y = "Número de personas"
+  ) +
+  theme_minimal()
+```
+
+### Análisis del balance entre clases
+
+El conjunto de datos presenta un importante desbalanceo entre las dos clases.
+
+De las 10.000 personas encuestadas, **9.216 (92,16 %) declaran tener un problema de salud mental**, mientras que **784 (7,84 %) no lo declaran**.
+
+Esto significa que la clase positiva es mucho más frecuente que la negativa.
+
+Este desbalanceo supone una dificultad para la clasificación, ya que un modelo que predijera siempre la clase mayoritaria obtendría una exactitud del 92,16 % sin aprender a distinguir correctamente ambas clases.
+
+Por ello, en el análisis supervisado será importante utilizar métricas como la sensibilidad, la especificidad, la exactitud balanceada y el AUC, además de la exactitud global.
+
+También será necesario prestar especial atención al rendimiento sobre la clase minoritaria, para comprobar que el modelo es capaz de identificar ambas clases y no únicamente la más frecuente.
+
+## Conclusiones de la inspección de los datos
+
+Tras realizar la inspección inicial, hemos comprobado que el conjunto de datos contiene **10.000 observaciones y 51 variables** de diferentes tipos. Esto nos permitirá estudiar la salud mental desde distintos aspectos, como los hábitos de vida, las condiciones laborales, los síntomas y el apoyo social.
+
+En cuanto a la calidad de los datos, no se han encontrado valores ausentes ni registros duplicados. También hemos realizado comprobaciones de los rangos y de posibles inconsistencias entre variables, que tendremos en cuenta durante el preprocesamiento.
+
+Los estadísticos descriptivos nos han permitido conocer mejor las características de los encuestados y las distribuciones de las variables numéricas y categóricas.
+
+Uno de los resultados más importantes es el **desbalanceo de la variable objetivo**, ya que el 92,16 % de los encuestados declara tener un problema de salud mental, frente al 7,84 % que no lo declara. Esto supone una dificultad para la clasificación, por lo que será necesario utilizar métricas como la sensibilidad, la especificidad, la exactitud balanceada y el AUC, en lugar de basarnos únicamente en la exactitud.
+
+En general, esta primera inspección nos ha permitido conocer la estructura del conjunto de datos e identificar los principales aspectos que debemos tener en cuenta antes de realizar el análisis supervisado.
 
 # Visualización de los datos
 
 ## Distribución de las variables numéricas
 
-> **Pendiente:** histogramas y diagramas de caja.
+```{r histogramas-continuas, fig.height=6}
+# Variables continuas o de recuento (las escalas y binarias se representan aparte)
+continuas <- c("Age", "Work_Hours_Per_Week", "Sleep_Hours_Night", "Caffeine_Drinks_Day",
+               "Screen_Time_Hours_Day", "Social_Media_Hours_Day", "Hobby_Time_Hours_Week",
+               "Close_Friends_Count")
+# Un histograma por variable (formato largo + facet_wrap)
+datos_raw %>% select(all_of(continuas)) %>% pivot_longer(everything()) %>%
+  ggplot(aes(value)) +
+  geom_histogram(bins = 30, fill = "#2c7fb8", colour = "white") +
+  facet_wrap(~ name, scales = "free", ncol = 4) +
+  labs(title = "Distribución de las variables continuas y de recuento", x = "Valor", y = "Frecuencia")
+```
+
+```{r boxplots-continuas, fig.height=5}
+# Diagramas de caja: los puntos rojos son los atípicos según el criterio 1,5·RIC
+datos_raw %>% select(all_of(continuas)) %>% pivot_longer(everything()) %>%
+  ggplot(aes(x = value)) +
+  geom_boxplot(fill = "#a6cee3", outlier.colour = "#e31a1c", outlier.alpha = .5, width = .5) +
+  facet_wrap(~ name, scales = "free_x", ncol = 4) +
+  labs(title = "Diagramas de caja de las variables continuas",
+       subtitle = "En rojo, los valores atípicos según el criterio 1,5·RIC", x = "Valor", y = NULL) +
+  theme(axis.text.y = element_blank())
+
+# Recuento de atípicos: valores a más de 1,5·RIC por debajo de Q1 o por encima de Q3
+atipicos <- map_dfr(continuas, function(v) {
+  x <- datos_raw[[v]]; q <- quantile(x, c(.25, .75)); r <- diff(q)
+  tibble(Variable = v, `Atípicos (n)` = sum(x < q[1] - 1.5 * r | x > q[2] + 1.5 * r))
+}) %>% mutate(`Atípicos (%)` = 100 * `Atípicos (n)` / nrow(datos_raw))
+kable(atipicos, digits = 2, caption = "Valores atípicos (criterio 1,5·RIC).")
+```
+
+```{r histogramas-sintomas, fig.height=6}
+# Histograma de cada síntoma (barras de anchura 1 porque son valores enteros)
+datos_raw %>% select(all_of(sintomas), Panic_Attacks) %>% pivot_longer(everything()) %>%
+  ggplot(aes(value)) +
+  geom_histogram(binwidth = 1, fill = "#2c7fb8", colour = "white") +
+  facet_wrap(~ name, ncol = 5) +
+  labs(title = "Distribución de los síntomas", x = "Intensidad del síntoma", y = "Frecuencia")
+```
+
+**Interpretación.** Las variables continuas tienen distribuciones aproximadamente **simétricas** (edad, horas de trabajo, sueño, pantalla) o **ligeramente asimétricas a la derecha** (cafeína, redes sociales, ocio, amigos). Los atípicos son pocos, como mucho el `r fmt(max(atipicos$"Atípicos (%)"), 1)` % de una variable, y todos son **valores plausibles** (por ejemplo, 70 horas de trabajo o 11 horas de sueño), no errores de medida. **Decisión:** no los eliminamos; los modelos de árboles son insensibles a ellos y en los demás el escalado reduce su influencia. Los doce síntomas tienen una distribución **casi uniforme** entre 0 y 10, algo poco habitual en datos clínicos reales, donde esperaríamos muchas personas con pocos síntomas y pocas con muchos. Solo los ataques de pánico tienen esa forma asimétrica.\
 
 ## Distribución de las variables categóricas
 
-> **Pendiente:** diagramas de barras.
+```{r barras-categoricas, fig.height=9}
+# Diagrama de barras horizontal de cada variable categórica, ordenado por frecuencia
+frec_cat %>%
+  ggplot(aes(x = reorder(Categoría, Frecuencia), y = Frecuencia)) +
+  geom_col(fill = "#2c7fb8") +
+  coord_flip() +
+  facet_wrap(~ Variable, scales = "free", ncol = 3) +
+  labs(title = "Frecuencia de cada categoría en las variables categóricas", x = NULL, y = "Número de personas") +
+  theme(axis.text.y = element_text(size = 8))
+```
+
+**Interpretación.** Las categorías están razonablemente repartidas en casi todas las variables. Los casos que destacan son las categorías minoritarias ya señaladas («Prefer not to say» en género, «Widowed» en estado civil, «PhD» en educación) y el peso de Estados Unidos e India entre los países. No hay erratas ni variantes de escritura de una misma categoría, así que **no hace falta unificar categorías**.
 
 ## Relación de las variables con la variable objetivo
 
