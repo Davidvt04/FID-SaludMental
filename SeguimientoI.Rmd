@@ -208,7 +208,29 @@ Todas las correlaciones son **muy débiles** (inferiores a 0,06): ninguna variab
 
 ## Preprocesado previsto
 
-> **Pendiente:** tratamiento de valores perdidos, codificación de variables categóricas, escalado y eliminación de variables poco informativas o redundantes.
+Se comprueba qué pasos de preprocesado son necesarios:
+
+```{r comprobaciones-preprocesado}
+# Valores perdidos y filas duplicadas
+sum(is.na(datos_raw))
+sum(duplicated(datos_raw))
+
+# Variables con varianza casi nula
+nearZeroVar(datos_raw)
+
+# Predictoras numéricas muy correlacionadas entre sí (|r| > 0.9)
+predictoras <- datos_raw[, predictoras_num]
+findCorrelation(cor(predictoras), cutoff = 0.9)
+
+# Número de variables categóricas
+sum(sapply(datos_raw, is.character))
+```
+
+No hay valores perdidos, duplicados, variables con varianza casi nula ni variables redundantes, así que **no hace falta imputar ni eliminar variables**. El preprocesado previsto, aprendido solo con el conjunto de entrenamiento y aplicado igual al de test, es:
+
+-   **Variable objetivo** como factor con niveles `"Si"` y `"No"`, necesario para calcular la curva ROC con CARET.
+-   **One-hot encoding** de las 13 variables categóricas con `dummyVars()`.
+-   **Estandarización** (`preProcess(method = c("center", "scale"))`), ya que las variables tienen escalas distintas y algunos modelos, como KNN, se basan en distancias.
 
 ## Estrategia de evaluación y métricas
 
