@@ -13,27 +13,27 @@ output:
 
 # Información del grupo
 
--   **Grupo de trabajo:** 1
--   **Miembros:**
-    1.  Elena de los Santos Barrera
-    2.  David Valencia Toscano
-    3.  Beatriz Vela Moscoso
+- **Grupo de trabajo:** 1
+- **Miembros:**
+  1.  Elena de los Santos Barrera
+  2.  David Valencia Toscano
+  3.  Beatriz Vela Moscoso
 
 # Conjunto de datos
 
--   **Nombre:** Global Mental Health & Lifestyle Survey
--   **Enlace:** <https://www.kaggle.com/code/lalit7881/global-mental-health-lifestyle-survey-92-15/input?scriptVersionId=294778087>
--   **Fichero:** `data/mental_health.csv`
+- **Nombre:** Global Mental Health & Lifestyle Survey
+- **Enlace:** <https://www.kaggle.com/code/lalit7881/global-mental-health-lifestyle-survey-92-15/input?scriptVersionId=294778087>
+- **Fichero:** `data/mental_health.csv`
 
 **Encuestados y variables.** El fichero contiene **10.000 encuestados**, uno por fila, y **51 variables**: 50 predictores y la variable objetivo. No hay valores ausentes ni registros duplicados. De las 51 columnas, 13 son categóricas y 38 numéricas, aunque buena parte de las numéricas son escalas discretas (de 1 a 10 o de 0 a 10) o indicadores binarios (0/1). Los predictores se organizan en siete bloques:
 
--   **Sociodemográficos:** edad, género, país, nivel educativo, estado civil y nivel de ingresos.
--   **Laborales:** situación laboral, horas de trabajo semanales, trabajo en remoto, satisfacción laboral, estrés laboral, conciliación, acoso en el trabajo y apoyo de la empresa a la salud mental.
--   **Estilo de vida:** ejercicio, horas de sueño, consumo de cafeína, alcohol y tabaco, tiempo de pantalla y de redes sociales, tiempo de ocio, calidad de la dieta y estrés económico.
--   **Síntomas:** doce síntomas emocionales puntuados de 0 a 10 (tristeza, pérdida de interés, problemas de sueño, fatiga, alteración del apetito, sentimiento de inutilidad, dificultad de concentración, ansiedad, cambios de humor, irritabilidad, pensamientos obsesivos y conductas compulsivas) y la frecuencia de ataques de pánico (de 0 a 4).
--   **Riesgo clínico:** ideas de autolesión, ideas suicidas, antecedentes familiares de enfermedad mental y trauma previo.
--   **Tratamiento:** diagnóstico previo, búsqueda de tratamiento, terapia actual y medicación actual.
--   **Entorno social:** apoyo social, número de amigos íntimos, sentirse comprendido, soledad y facilidad para hablar de salud mental.
+- **Sociodemográficos:** edad, género, país, nivel educativo, estado civil y nivel de ingresos.
+- **Laborales:** situación laboral, horas de trabajo semanales, trabajo en remoto, satisfacción laboral, estrés laboral, conciliación, acoso en el trabajo y apoyo de la empresa a la salud mental.
+- **Estilo de vida:** ejercicio, horas de sueño, consumo de cafeína, alcohol y tabaco, tiempo de pantalla y de redes sociales, tiempo de ocio, calidad de la dieta y estrés económico.
+- **Síntomas:** doce síntomas emocionales puntuados de 0 a 10 (tristeza, pérdida de interés, problemas de sueño, fatiga, alteración del apetito, sentimiento de inutilidad, dificultad de concentración, ansiedad, cambios de humor, irritabilidad, pensamientos obsesivos y conductas compulsivas) y la frecuencia de ataques de pánico (de 0 a 4).
+- **Riesgo clínico:** ideas de autolesión, ideas suicidas, antecedentes familiares de enfermedad mental y trauma previo.
+- **Tratamiento:** diagnóstico previo, búsqueda de tratamiento, terapia actual y medicación actual.
+- **Entorno social:** apoyo social, número de amigos íntimos, sentirse comprendido, soledad y facilidad para hablar de salud mental.
 
 **Variable objetivo.** `Has_Mental_Health_Issue` es una variable binaria: vale 1 si la persona declara tener un problema de salud mental y 0 si no. Es una autodeclaración del encuestado, no un diagnóstico clínico. Su distribución e la siguiente: **9.216 personas (92,2 %)** declaran un problema y solo **784 (7,8 %)** no lo hacen. Este desbalanceo condiciona el análisis. Un modelo que respondiera siempre «sí» acertaría el 92,2 %
 
@@ -98,9 +98,47 @@ El conjunto de datos contiene **10.000 observaciones y 51 variables**, incluyend
 
 ## Distribución de las variables numéricas
 
-> **Pendiente:** histogramas y diagramas de caja.
+```{r histogramas-continuas, fig.height=6}
+# Variables continuas o de recuento (las escalas y binarias se representan aparte)
+continuas <- c("Age", "Work_Hours_Per_Week", "Sleep_Hours_Night", "Caffeine_Drinks_Day",
+               "Screen_Time_Hours_Day", "Social_Media_Hours_Day", "Hobby_Time_Hours_Week",
+               "Close_Friends_Count")
+# Un histograma por variable (formato largo + facet_wrap)
+datos_raw %>% select(all_of(continuas)) %>% pivot_longer(everything()) %>%
+  ggplot(aes(value)) +
+  geom_histogram(bins = 30, fill = "#2c7fb8", colour = "white") +
+  facet_wrap(~ name, scales = "free", ncol = 4) +
+  labs(title = "Distribución de las variables continuas y de recuento", x = "Valor", y = "Frecuencia")
+```
 
-## Distribución de las variables categóricas
+```{r boxplots-continuas, fig.height=5}
+# Diagramas de caja: los puntos rojos son los atípicos según el criterio 1,5·RIC
+datos_raw %>% select(all_of(continuas)) %>% pivot_longer(everything()) %>%
+  ggplot(aes(x = value)) +
+  geom_boxplot(fill = "#a6cee3", outlier.colour = "#e31a1c", outlier.alpha = .5, width = .5) +
+  facet_wrap(~ name, scales = "free_x", ncol = 4) +
+  labs(title = "Diagramas de caja de las variables continuas",
+       subtitle = "En rojo, los valores atípicos según el criterio 1,5·RIC", x = "Valor", y = NULL) +
+  theme(axis.text.y = element_blank())
+
+# Recuento de atípicos: valores a más de 1,5·RIC por debajo de Q1 o por encima de Q3
+atipicos <- map_dfr(continuas, function(v) {
+  x <- datos_raw[[v]]; q <- quantile(x, c(.25, .75)); r <- diff(q)
+  tibble(Variable = v, `Atípicos (n)` = sum(x < q[1] - 1.5 * r | x > q[2] + 1.5 * r))
+}) %>% mutate(`Atípicos (%)` = 100 * `Atípicos (n)` / nrow(datos_raw))
+kable(atipicos, digits = 2, caption = "Valores atípicos (criterio 1,5·RIC).")
+```
+
+```{r histogramas-sintomas, fig.height=6}
+# Histograma de cada síntoma (barras de anchura 1 porque son valores enteros)
+datos_raw %>% select(all_of(sintomas), Panic_Attacks) %>% pivot_longer(everything()) %>%
+  ggplot(aes(value)) +
+  geom_histogram(binwidth = 1, fill = "#2c7fb8", colour = "white") +
+  facet_wrap(~ name, ncol = 5) +
+  labs(title = "Distribución de los síntomas", x = "Intensidad del síntoma", y = "Frecuencia")
+```
+
+**Interpretación.** Las variables continuas tienen distribuciones aproximadamente **simétricas** (edad, horas de trabajo, sueño, pantalla) o **ligeramente asimétricas a la derecha** (cafeína, redes sociales, ocio, amigos). Los atípicos son pocos, como mucho el `r fmt(max(atipicos$"Atípicos (%)"), 1)` % de una variable, y todos son **valores plausibles** (por ejemplo, 70 horas de trabajo o 11 horas de sueño), no errores de medida. **Decisión:** no los eliminamos; los modelos de árboles son insensibles a ellos y en los demás el escalado reduce su influencia. Los doce síntomas tienen una distribución **casi uniforme** entre 0 y 10, algo poco habitual en datos clínicos reales, donde esperaríamos muchas personas con pocos síntomas y pocas con muchos. Solo los ataques de pánico tienen esa forma asimétrica. \## Distribución de las variables categóricas
 
 > **Pendiente:** diagramas de barras.
 
