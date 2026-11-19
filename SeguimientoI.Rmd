@@ -157,14 +157,14 @@ kable(bloques, row.names = FALSE,
 
 Los bloques contienen la siguiente información:
 
--   **Sociodemográficas:** edad, género, país, estudios, estado civil e ingresos. La edad es numérica, mientras que las restantes son categóricas nominales u ordinales.
--   **Laborales:** situación laboral, horas trabajadas, trabajo en remoto, satisfacción laboral, estrés, conciliación y apoyo de la empresa. Incluyen cantidades, categorías y escalas de valoración.
--   **Estilo de vida:** hábitos relacionados con el ejercicio, descanso, alimentación, consumo de sustancias, uso de pantallas y tiempo de ocio. Incluyen horas, frecuencias y categorías.
--   **Síntomas:** doce síntomas emocionales y psicológicos valorados de 0 a 10, además de los ataques de pánico, cuya escala es de 0 a 4.
--   **Historial clínico:** antecedentes familiares, experiencias traumáticas y pensamientos de autolesión o suicidio. Son indicadores binarios.
--   **Tratamiento:** diagnóstico previo, búsqueda de ayuda, terapia y medicación. Son variables binarias.
--   **Apoyo social:** número de amigos, apoyo recibido, sentimiento de comprensión y soledad, y facilidad para hablar de salud mental. Incluyen cantidades, escalas y categorías.
--   **Variable objetivo:** `Has_Mental_Health_Issue`, que toma el valor 1 si el encuestado declara tener un problema de salud mental y 0 si no lo declara.
+- **Sociodemográficas:** edad, género, país, estudios, estado civil e ingresos. La edad es numérica, mientras que las restantes son categóricas nominales u ordinales.
+- **Laborales:** situación laboral, horas trabajadas, trabajo en remoto, satisfacción laboral, estrés, conciliación y apoyo de la empresa. Incluyen cantidades, categorías y escalas de valoración.
+- **Estilo de vida:** hábitos relacionados con el ejercicio, descanso, alimentación, consumo de sustancias, uso de pantallas y tiempo de ocio. Incluyen horas, frecuencias y categorías.
+- **Síntomas:** doce síntomas emocionales y psicológicos valorados de 0 a 10, además de los ataques de pánico, cuya escala es de 0 a 4.
+- **Historial clínico:** antecedentes familiares, experiencias traumáticas y pensamientos de autolesión o suicidio. Son indicadores binarios.
+- **Tratamiento:** diagnóstico previo, búsqueda de ayuda, terapia y medicación. Son variables binarias.
+- **Apoyo social:** número de amigos, apoyo recibido, sentimiento de comprensión y soledad, y facilidad para hablar de salud mental. Incluyen cantidades, escalas y categorías.
+- **Variable objetivo:** `Has_Mental_Health_Issue`, que toma el valor 1 si el encuestado declara tener un problema de salud mental y 0 si no lo declara.
 
 Esta clasificación nos ayudará a decidir cómo preparar las variables antes del entrenamiento de los modelos.
 
@@ -376,8 +376,8 @@ La variable que queremos predecir es `Has_Mental_Health_Issue`, que indica si un
 
 Se trata de una variable binaria:
 
--   **0:** no declara un problema de salud mental.
--   **1:** declara un problema de salud mental.
+- **0:** no declara un problema de salud mental.
+- **1:** declara un problema de salud mental.
 
 Es importante señalar que esta variable representa la declaración del encuestado y no necesariamente un diagnóstico clínico.
 
@@ -629,9 +629,9 @@ sum(sapply(datos_raw, is.character))
 
 No hay valores perdidos, duplicados, variables con varianza casi nula ni variables redundantes, así que **no hace falta imputar ni eliminar variables**. El preprocesado previsto, aprendido solo con el conjunto de entrenamiento y aplicado igual al de test, es:
 
--   **Variable objetivo** como factor con niveles `"Si"` y `"No"`, necesario para calcular la curva ROC con CARET.
--   **One-hot encoding** de las 13 variables categóricas con `dummyVars()`.
--   **Estandarización** (`preProcess(method = c("center", "scale"))`), ya que las variables tienen escalas distintas y algunos modelos, como KNN, se basan en distancias.
+- **Variable objetivo** como factor con niveles `"Si"` y `"No"`, necesario para calcular la curva ROC con CARET.
+- **One-hot encoding** de las 13 variables categóricas con `dummyVars()`.
+- **Estandarización** (`preProcess(method = c("center", "scale"))`), ya que las variables tienen escalas distintas y algunos modelos, como KNN, se basan en distancias.
 
 ## Estrategia de evaluación y métricas
 
@@ -644,11 +644,3 @@ No hay valores perdidos, duplicados, variables con varianza casi nula ni variabl
 ## Selección de variables
 
 > **Pendiente:** métodos de selección de variables de tipo filtro y wrapper que se van a aplicar.
-
-# Próximos pasos
-
-> **Pendiente:** tareas previstas para los siguientes seguimientos (análisis supervisado completo y análisis no supervisado).
-
-# Información de la sesión
-
-> **Pendiente:** versiones de R y de los paquetes utilizados, para la reproducibilidad.
