@@ -1,7 +1,7 @@
 ---
 title: "Seguimiento I: inspección de datos y planteamiento del análisis supervisado"
 subtitle: "Global Mental Health & Lifestyle Survey"
-author: "Grupo X: Elena de los Santos Barrera, David Valencia Toscano y Beatriz Vela Moscoso"
+author: "Grupo 1: Elena de los Santos Barrera, David Valencia Toscano y Beatriz Vela Moscoso"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -13,7 +13,7 @@ output:
 
 # Información del grupo
 
-- **Grupo de trabajo:** X *(pendiente: indicar el número de grupo)*
+- **Grupo de trabajo:** 1
 - **Miembros:**
   1.  Elena de los Santos Barrera
   2.  David Valencia Toscano
