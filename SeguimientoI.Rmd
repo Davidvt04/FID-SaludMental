@@ -25,7 +25,17 @@ output:
 - **Enlace:** <https://www.kaggle.com/code/lalit7881/global-mental-health-lifestyle-survey-92-15/input?scriptVersionId=294778087>
 - **Fichero:** `data/mental_health.csv`
 
-> **Pendiente:** descripción breve del conjunto de datos (origen, número de encuestados y variables) y de la variable objetivo `Has_Mental_Health_Issue`.
+**Encuestados y variables.** El fichero contiene **10.000 encuestados**, uno por fila, y **51 variables**: 50 predictores y la variable objetivo. No hay valores ausentes ni registros duplicados. De las 51 columnas, 13 son categóricas y 38 numéricas, aunque buena parte de las numéricas son escalas discretas (de 1 a 10 o de 0 a 10) o indicadores binarios (0/1). Los predictores se organizan en siete bloques:
+
+- **Sociodemográficos:** edad, género, país, nivel educativo, estado civil y nivel de ingresos.
+- **Laborales:** situación laboral, horas de trabajo semanales, trabajo en remoto, satisfacción laboral, estrés laboral, conciliación, acoso en el trabajo y apoyo de la empresa a la salud mental.
+- **Estilo de vida:** ejercicio, horas de sueño, consumo de cafeína, alcohol y tabaco, tiempo de pantalla y de redes sociales, tiempo de ocio, calidad de la dieta y estrés económico.
+- **Síntomas:** doce síntomas emocionales puntuados de 0 a 10 (tristeza, pérdida de interés, problemas de sueño, fatiga, alteración del apetito, sentimiento de inutilidad, dificultad de concentración, ansiedad, cambios de humor, irritabilidad, pensamientos obsesivos y conductas compulsivas) y la frecuencia de ataques de pánico (de 0 a 4).
+- **Riesgo clínico:** ideas de autolesión, ideas suicidas, antecedentes familiares de enfermedad mental y trauma previo.
+- **Tratamiento:** diagnóstico previo, búsqueda de tratamiento, terapia actual y medicación actual.
+- **Entorno social:** apoyo social, número de amigos íntimos, sentirse comprendido, soledad y facilidad para hablar de salud mental.
+
+**Variable objetivo.** `Has_Mental_Health_Issue` es una variable binaria: vale 1 si la persona declara tener un problema de salud mental y 0 si no. Es una autodeclaración del encuestado, no un diagnóstico clínico. Su distribución e la siguiente: **9.216 personas (92,2 %)** declaran un problema y solo **784 (7,8 %)** no lo hacen. Este desbalanceo condiciona el análisis. Un modelo que respondiera siempre «sí» acertaría el 92,2 %
 
 # Resumen de las tareas realizadas
 
