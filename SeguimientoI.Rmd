@@ -130,7 +130,81 @@ Además de la capacidad predictiva, interesa la **interpretabilidad**: identific
 
 ## Variables predictoras y posible fuga de información
 
-> **Pendiente:** selección de las variables predictoras y discusión de las variables que podrían filtrar información de la clase (por ejemplo, diagnósticos o tratamientos previos).
+Se parte de las **50 variables** restantes como predictoras, agrupadas en siete bloques.
+
+```{r bloques-predictores}
+# Bloques temáticos de variables predictoras
+bloques <- list(
+  Sociodemograficos = c("Age", "Gender", "Country", "Education",
+                        "Marital_Status", "Income_Level"),
+  Laborales         = c("Employment_Status", "Work_Hours_Per_Week", "Remote_Work",
+                        "Job_Satisfaction", "Work_Stress_Level", "Work_Life_Balance",
+                        "Ever_Bullied_At_Work", "Company_Mental_Health_Support"),
+  Estilo_de_vida    = c("Exercise_Per_Week", "Sleep_Hours_Night", "Caffeine_Drinks_Day",
+                        "Alcohol_Frequency", "Smoking", "Screen_Time_Hours_Day",
+                        "Social_Media_Hours_Day", "Hobby_Time_Hours_Week",
+                        "Diet_Quality", "Financial_Stress"),
+  Sintomas          = c("Feeling_Sad_Down", "Loss_Of_Interest", "Sleep_Trouble",
+                        "Fatigue", "Poor_Appetite_Or_Overeating", "Feeling_Worthless",
+                        "Concentration_Difficulty", "Anxious_Nervous", "Panic_Attacks",
+                        "Mood_Swings", "Irritability", "Obsessive_Thoughts",
+                        "Compulsive_Behavior"),
+  Riesgo_clinico    = c("Self_Harm_Thoughts", "Suicidal_Thoughts",
+                        "Family_History_Mental_Illness", "Trauma_History"),
+  Tratamiento       = c("Previously_Diagnosed", "Ever_Sought_Treatment",
+                        "On_Therapy_Now", "On_Medication"),
+  Entorno_social    = c("Social_Support", "Close_Friends_Count", "Feel_Understood",
+                        "Loneliness", "Discuss_Mental_Health")
+)
+
+# Número de variables por bloque y comprobación de que están todas las predictoras
+lengths(bloques)
+setequal(unlist(bloques), setdiff(names(datos_raw), "Has_Mental_Health_Issue"))
+```
+
+### Posible fuga de información
+
+Las variables de **tratamiento** (diagnóstico previo, terapia, medicación…) podrían filtrar la respuesta, ya que son más una consecuencia del problema que una causa. Se comprueba si separan las clases:
+
+```{r fuga-tratamiento}
+# Proporción de personas que declaran un problema de salud mental
+# según el valor de cada variable de tratamiento y de riesgo clínico (0/1)
+variables_fuga <- c(bloques$Tratamiento, bloques$Riesgo_clinico)
+
+# % que declara un problema según la variable valga 0 o 1
+pct_problema <- sapply(variables_fuga, function(v)
+  100 * tapply(datos_raw$Has_Mental_Health_Issue, datos_raw[[v]], mean))
+rownames(pct_problema) <- c("Valor 0", "Valor 1")
+round(t(pct_problema), 1)
+```
+
+El porcentaje se mantiene **en torno al 92 %** con 0 y con 1, así que no hay fuga. Se calcula también la correlación de cada predictora numérica con la objetivo:
+
+```{r correlacion-objetivo, fig.height=8}
+# Correlación de cada predictora numérica con la variable objetivo
+predictoras_num <- datos_raw %>%
+  select(where(is.numeric), -Has_Mental_Health_Issue) %>%
+  names()
+
+cor_objetivo <- data.frame(
+  Variable    = predictoras_num,
+  Correlacion = sapply(predictoras_num,
+                       function(v) cor(datos_raw[[v]], datos_raw$Has_Mental_Health_Issue))
+)
+
+ggplot(cor_objetivo, aes(x = reorder(Variable, Correlacion), y = Correlacion,
+                         fill = Correlacion > 0)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(title = "Correlación de las predictoras numéricas con Has_Mental_Health_Issue",
+       x = NULL, y = "Correlación de Pearson") +
+  theme_minimal()
+
+# Máxima correlación en valor absoluto
+max(abs(cor_objetivo$Correlacion))
+```
+
+Todas las correlaciones son **muy débiles** (inferiores a 0,06): ninguna variable explica el problema por sí sola, lo que anticipa una clasificación difícil. Aun así, se compararán los modelos **con y sin el bloque de tratamiento**.
 
 ## Preprocesado previsto
 
